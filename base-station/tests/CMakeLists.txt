@@ -14,5 +14,4 @@ target_link_libraries(base_station_tests
                       gtest_main
                       )
 
-# include(GoogleTest)
 gtest_discover_tests(base_station_tests)

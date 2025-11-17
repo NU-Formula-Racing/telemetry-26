@@ -20,6 +20,7 @@ if (CLANG_FORMAT)
     foreach(FILE ${ALL_CPP_FILES})
         add_custom_command(
             TARGET format
+            POST_BUILD
             COMMAND ${CLANG_FORMAT} --dry-run -Werror ${FILE} --style=file:${CLANG_FORMAT_CONFIG_FILE}
             COMMENT "Formatting ${FILE}"
         )
