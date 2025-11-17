@@ -1,4 +1,4 @@
-#include "../../core/interfaces/interface.hpp"
+#include "interface.hpp"
 
 class App {
  private:

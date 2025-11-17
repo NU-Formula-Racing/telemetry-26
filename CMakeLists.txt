@@ -14,7 +14,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # by default, build for native
 option(BUILD_TARGET_STM "Build for STM32 target" OFF)
 
-if(BUILD_TARGET_HW)
+if(BUILD_TARGET_STM)
     message(STATUS "Build mode: TARGET (STM32)")
     if(NOT CMAKE_TOOLCHAIN_FILE)
         message(FATAL_ERROR "Target builds require a toolchain file. \
