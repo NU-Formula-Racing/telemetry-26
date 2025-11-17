@@ -10,6 +10,7 @@ target_include_directories(base_station_tests PRIVATE
                           )
 
 target_link_libraries(base_station_tests 
+                      base_station_app
                       gtest 
                       gtest_main
                       )
