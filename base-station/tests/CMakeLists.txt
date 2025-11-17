@@ -1,4 +1,4 @@
-add_library(base_station_tests
+add_executable(base_station_tests
             test.cpp
            )
 
@@ -9,3 +9,10 @@ target_include_directories(base_station_tests PRIVATE
                            ${CMAKE_SOURCE_DIR}/third-party/googletest/googlemock
                           )
 
+target_link_libraries(base_station_tests 
+                      gtest 
+                      gtest_main
+                      )
+
+# include(GoogleTest)
+gtest_discover_tests(base_station_tests)
