@@ -39,6 +39,8 @@ if(CMAKE_CROSSCOMPILING)
                      # --specs=nano.specs # smaller binary size
                      -Wl,--gc-sections
                      -Wl,--print-memory-usage
+
+                    # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
                     )
 
     # .elf target for remote

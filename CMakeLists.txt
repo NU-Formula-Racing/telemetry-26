@@ -11,10 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# by default, build for native
-option(BUILD_TARGET_STM "Build for STM32 target" OFF)
-
-if(BUILD_TARGET_STM)
+if(CMAKE_CROSSCOMPILING)
     message(STATUS "Build mode: TARGET (STM32)")
     if(NOT CMAKE_TOOLCHAIN_FILE)
         message(FATAL_ERROR "Target builds require a toolchain file. \
