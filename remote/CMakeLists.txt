@@ -7,65 +7,68 @@ project(telemetry-remote
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# only run linter on native builds
-if(NOT CMAKE_CROSSCOMPILING)
+if(CMAKE_CROSSCOMPILING)
+    message(STATUS "Configuring for STM32 TARGET...")
+
+    if(NOT CMAKE_TOOLCHAIN_FILE)
+        message(FATAL_ERROR "Target builds require a toolchain file.")
+    endif()
+
+    # set compile flags for STM32F4 (arm cortex-m4)
+    add_compile_options(
+        -mcpu=cortex-m4
+        -mthumb
+        -mfpu=fpv4-sp-d16
+        -mfloat-abi=hard
+        -fdata-sections
+        -ffunction-sections
+        -Wall
+        -Wextra
+        $<$<CONFIG:Debug>:-Og>
+    )
+
+    add_link_options(
+        -mcpu=cortex-m4
+        -mthumb
+        -mfpu=fpv4-sp-d16
+        -mfloat-abi=hard
+        --specs=nosys.specs 
+        -Wl,--gc-sections
+        -Wl,--print-memory-usage
+        # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
+    )
+
+else()
+    message(STATUS "Configuring for NATIVE Host...")
+    
+    # only lint when building natively
     set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 endif()
 
+# add shared directories
 add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 add_subdirectory(src/app)
 
 if(CMAKE_CROSSCOMPILING)
-    message(STATUS "Building remote for TARGET (STM32)...")
-    if(NOT CMAKE_TOOLCHAIN_FILE)
-        message(FATAL_ERROR "Target builds require a toolchain file. \
-                             Set -DCMAKE_TOOLCHAIN_FILE=path/to/arm-none-eabi.cmake")
-    endif()
-    
-    # compiler flags for STM32 - ARM Cortex-M4
-    add_compile_options(-mcpu=cortex-m4
-                        -mthumb
-                        -mfpu=fpv4-sp-d16
-                        -mfloat-abi=hard
-                        -fdata-sections
-                        -ffunction-sections
-                        -Wall
-                        -Wextra
-                        $<$<CONFIG:Debug>:-Og>
-                       )
+    add_subdirectory(bsp)
 
-    # linker flags for STM32 - ARM Cortex-M4
-    add_link_options(-mcpu=cortex-m4
-                     -mthumb
-                     -mfpu=fpv4-sp-d16
-                     -mfloat-abi=hard
-                     --specs=nosys.specs 
-                     # --specs=nano.specs # smaller binary size
-                     -Wl,--gc-sections
-                     -Wl,--print-memory-usage
-                    # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
-                    )
-
-    # .elf target for remote
-    add_executable(remote.elf
-                   src/main.cpp)               
+    add_executable(remote.elf src/main.cpp)               
 
     target_include_directories(remote.elf PRIVATE 
-                               ${CMAKE_SOURCE_DIR}/src/app
+                               ${CMAKE_CURRENT_SOURCE_DIR}/src/app
+                               ${CMAKE_CURRENT_SOURCE_DIR}/bsp
                               )
  
     target_link_libraries(remote.elf PRIVATE
                             remote_app
-                            core_bsp
+                            remote_bsp 
                             core_drivers
                             core_interfaces
                          )
  
-    # convert .elf to flashable .bin and .hex files with objcopy
     find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy)
  
     add_custom_command(
@@ -76,12 +79,9 @@ if(CMAKE_CROSSCOMPILING)
     )
 
 else()
-    message(STATUS "Building remote for NATIVE (Host)...")
-    
-    # add unit testing + linting for native builds
     enable_testing()
     
-    # disable linting for third-party code
+    # disable linter for GoogleTest
     set(TEMP_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY})
     set(CMAKE_CXX_CLANG_TIDY "")
     add_subdirectory(../third-party/googletest ${CMAKE_BINARY_DIR}/googletest)

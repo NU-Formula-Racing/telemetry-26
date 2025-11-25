@@ -1,2 +1,2 @@
 # temporary until i add all actual bsp files
-add_library(core_bsp INTERFACE)
+add_library(base-station_bsp INTERFACE)
