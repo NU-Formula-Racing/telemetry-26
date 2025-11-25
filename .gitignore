@@ -1,5 +1,3 @@
-build/
-native-build/
 base-station/stm-build/
 remote/stm-build/
 base-station/native-build/

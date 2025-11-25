@@ -11,6 +11,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# only run linter on native builds
+if(NOT CMAKE_CROSSCOMPILING)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+endif()
+
+add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
+add_subdirectory(src/app)
+
 if(CMAKE_CROSSCOMPILING)
     message(STATUS "Building remote for TARGET (STM32)...")
     if(NOT CMAKE_TOOLCHAIN_FILE)
@@ -39,7 +47,6 @@ if(CMAKE_CROSSCOMPILING)
                      # --specs=nano.specs # smaller binary size
                      -Wl,--gc-sections
                      -Wl,--print-memory-usage
-
                     # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
                     )
 
@@ -49,9 +56,6 @@ if(CMAKE_CROSSCOMPILING)
 
     target_include_directories(remote.elf PRIVATE 
                                ${CMAKE_SOURCE_DIR}/src/app
-                               # ${CMAKE_SOURCE_DIR}/core/interfaces
-                               # ${CMAKE_SOURCE_DIR}/core/bsp
-                               # ${CMAKE_SOURCE_DIR}/core/drivers
                               )
  
     target_link_libraries(remote.elf PRIVATE
@@ -76,14 +80,16 @@ else()
     
     # add unit testing + linting for native builds
     enable_testing()
-    add_subdirectory(../../third-party/googletest)
+    
+    # disable linting for third-party code
+    set(TEMP_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY})
+    set(CMAKE_CXX_CLANG_TIDY "")
+    add_subdirectory(../third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
+    set(CMAKE_CXX_CLANG_TIDY ${TEMP_CLANG_TIDY})
+
     include(GoogleTest)
-    set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
     include(CTest)
-    include(../../tools/cmake/format.cmake)
+    include(../tools/cmake/format.cmake)
 
     add_subdirectory(tests)
 endif()
-
-add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
-add_subdirectory(src/app)
