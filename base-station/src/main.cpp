@@ -1,11 +1,15 @@
-#include <iostream>
-
 #include "app/app.hpp"
 
+extern "C" void BspInit(void);
+
 int main() {
+  BspInit();
+
   App app;
-  int result = app.run();
-  std::cout << result << std::endl;
+
+  while (true) {
+    app.run();
+  }
 
   return 0;
 }

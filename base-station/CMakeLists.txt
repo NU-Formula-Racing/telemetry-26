@@ -27,6 +27,7 @@ if(CMAKE_CROSSCOMPILING)
         -ffunction-sections
         -Wall
         -Wextra
+        --specs=nano.specs 
         $<$<CONFIG:Debug>:-Og>
     )
 
@@ -35,12 +36,15 @@ if(CMAKE_CROSSCOMPILING)
         -mthumb
         -mfpu=fpv4-sp-d16
         -mfloat-abi=hard
-        --specs=nosys.specs 
+        --specs=nano.specs 
         -Wl,--gc-sections
         -Wl,--print-memory-usage
         # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
     )
 
+    add_subdirectory(bsp)
+    add_library(platform_bsp ALIAS base-station_bsp) # inject base-station bsp alias so core can find it
+    target_compile_options(base-station_bsp PRIVATE -w) # turn off warnings for STM32CubeMX generated code
 else()
     message(STATUS "Configuring for NATIVE Host...")
     
@@ -53,8 +57,7 @@ add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 add_subdirectory(src/app)
 
 if(CMAKE_CROSSCOMPILING)
-    add_subdirectory(bsp)
-
+    # build .elf for target
     add_executable(base-station.elf src/main.cpp)               
 
     target_include_directories(base-station.elf PRIVATE 
@@ -69,6 +72,7 @@ if(CMAKE_CROSSCOMPILING)
                             core_interfaces
                          )
  
+    # generate .bin and .hex from .elf using objcopy
     find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy)
  
     add_custom_command(
