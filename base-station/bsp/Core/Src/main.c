@@ -34,6 +34,10 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// define priorities for FreeRTOS tasks here
+// #define PRIORITY_BLINKY_TASK  ( tskIDLE_PRIORITY + 1UL )
+// #define PRIORITY_COMMS_TASK  ( tskIDLE_PRIORITY + 2UL )
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -95,16 +99,20 @@ void BspInit(void) {
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
+  // init FreeRTOS tasks
+  // xTaskCreate(blinky_task, "blinky", 100, NULL, PRIORITY_BLINKY_TASK, (TaskHandle_t *)NULL);
+  // xTaskCreate(comms_handler_task, "comms", 100, NULL, PRIORITY_COMMS_TASK, (TaskHandle_t *)NULL);
+  // vTaskStartScheduler()
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //   while (1)
-  //   {
-  //     /* USER CODE END WHILE */
-  //
-  //     /* USER CODE BEGIN 3 */
-  //   }
+  while (1) {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
   /* USER CODE END 3 */
 }
 
@@ -193,7 +201,7 @@ static void MX_DMA_Init(void) {
 
   /* DMA interrupt init */
   /* DMA1_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
 }
 

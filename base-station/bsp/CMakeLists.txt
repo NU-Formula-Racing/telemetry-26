@@ -56,6 +56,20 @@ target_compile_definitions(base-station_bsp PUBLIC
     STM32F405xx
 )
 
+add_library(freertos_config INTERFACE)
+
+target_include_directories(freertos_config SYSTEM INTERFACE
+    include
+)
+
+target_compile_definitions(freertos_config
+  INTERFACE
+  projCOVERAGE_TEST=0
+)
+
+target_compile_definitions(freertos_config INTERFACE ${definitions})
+target_compile_options(freertos_config INTERFACE ${options})
+
 target_link_options(base-station_bsp INTERFACE
     -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405XX_FLASH.ld
 )

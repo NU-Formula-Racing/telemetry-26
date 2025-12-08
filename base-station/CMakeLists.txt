@@ -39,8 +39,13 @@ if(CMAKE_CROSSCOMPILING)
         --specs=nano.specs 
         -Wl,--gc-sections
         -Wl,--print-memory-usage
-        # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
     )
+
+    set( FREERTOS_HEAP "4" CACHE STRING "" FORCE)
+    # Select the native compile PORT
+    set( FREERTOS_PORT "GCC_POSIX" CACHE STRING "" FORCE)
+    # Select the cross-compile PORT
+    set(FREERTOS_PORT "GCC_ARM_CM4F" CACHE STRING "" FORCE)
 
     add_subdirectory(bsp)
     add_library(platform_bsp ALIAS base-station_bsp) # inject base-station bsp alias so core can find it
@@ -70,8 +75,11 @@ if(CMAKE_CROSSCOMPILING)
                             base-station_bsp 
                             core_drivers
                             core_interfaces
+                            freertos_config
                          )
- 
+
+    add_subdirectory(../third-party/freertos ${CMAKE_BINARY_DIR}/freertos)
+
     # generate .bin and .hex from .elf using objcopy
     find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy)
  
@@ -79,7 +87,7 @@ if(CMAKE_CROSSCOMPILING)
         TARGET base-station.elf POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:base-station.elf> $<TARGET_FILE_DIR:base-station.elf>/base-station.bin
         COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:base-station.elf> $<TARGET_FILE_DIR:base-station.elf>/base-station.hex
-        COMMENT "Generating base-station .bin and .hex files"
+        COMMENT "Generating base-station .bin and .hex files..."
     )
 
 else()
