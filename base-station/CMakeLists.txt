@@ -75,10 +75,13 @@ if(CMAKE_CROSSCOMPILING)
                             base-station_bsp 
                             core_drivers
                             core_interfaces
+                            core_tasks
+                            freertos_kernel
                             freertos_config
                          )
 
     add_subdirectory(../third-party/freertos ${CMAKE_BINARY_DIR}/freertos)
+    add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
 
     # generate .bin and .hex from .elf using objcopy
     find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy)

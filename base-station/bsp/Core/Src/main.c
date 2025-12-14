@@ -34,10 +34,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-// define priorities for FreeRTOS tasks here
-// #define PRIORITY_BLINKY_TASK  ( tskIDLE_PRIORITY + 1UL )
-// #define PRIORITY_COMMS_TASK  ( tskIDLE_PRIORITY + 2UL )
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -98,11 +94,6 @@ void BspInit(void) {
   MX_SPI2_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-
-  // init FreeRTOS tasks
-  // xTaskCreate(blinky_task, "blinky", 100, NULL, PRIORITY_BLINKY_TASK, (TaskHandle_t *)NULL);
-  // xTaskCreate(comms_handler_task, "comms", 100, NULL, PRIORITY_COMMS_TASK, (TaskHandle_t *)NULL);
-  // vTaskStartScheduler()
 
   /* USER CODE END 2 */
 

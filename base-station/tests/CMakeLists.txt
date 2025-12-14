@@ -11,6 +11,7 @@ target_include_directories(base-station_tests PRIVATE
 
 target_link_libraries(base-station_tests 
                       base-station_app
+                      core_tasks
                       gtest 
                       gtest_main
                       )

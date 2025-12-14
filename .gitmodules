@@ -4,3 +4,6 @@
 [submodule "third-party/freertos"]
 	path = third-party/freertos
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+[submodule "third-party/etl"]
+	path = third-party/etl
+	url = https://github.com/ETLCPP/etl.git

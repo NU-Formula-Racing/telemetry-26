@@ -1,5 +1,6 @@
+#include <gtest/gtest.h>
+
 #include "app.hpp"
-#include "gtest/gtest.h"
 
 TEST(AppTest, SampleTest) { EXPECT_EQ(1, 1); }
 
