@@ -60,6 +60,7 @@ endif()
 # add shared directories
 add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 add_subdirectory(src/app)
+add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
 
 if(CMAKE_CROSSCOMPILING)
     # build .elf for target
@@ -81,7 +82,6 @@ if(CMAKE_CROSSCOMPILING)
                          )
 
     add_subdirectory(../third-party/freertos ${CMAKE_BINARY_DIR}/freertos)
-    add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
 
     # generate .bin and .hex from .elf using objcopy
     find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy)

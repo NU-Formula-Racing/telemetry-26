@@ -101,7 +101,7 @@ class FreeRtosTask final : public AbstractTask {
 class TaskManager {
  public:
   bool addTask(AbstractTask* task) {
-    if (tasks_.size() < maxTasks) {
+    if (tasks_.size() < maxTasks_) {
       tasks_.push_back(task);
       return true;
     }
@@ -115,8 +115,8 @@ class TaskManager {
   }
 
  private:
-  static constexpr size_t maxTasks = 20;
-  etl::vector<AbstractTask*, maxTasks> tasks_;
+  static constexpr size_t maxTasks_ = 20;
+  etl::vector<AbstractTask*, maxTasks_> tasks_;
 };
 
 }  // namespace tasks
