@@ -77,6 +77,7 @@ if(CMAKE_CROSSCOMPILING)
                             core_drivers
                             core_interfaces
                             core_tasks
+                            core_resources
                             freertos_kernel
                             freertos_config
                          )
