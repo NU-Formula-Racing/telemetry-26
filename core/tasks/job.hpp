@@ -1,5 +1,4 @@
-#ifndef __JOB_HPP__
-#define __JOB_HPP__
+#pragma once
 
 namespace tasks {
 
@@ -18,5 +17,3 @@ class IJob {
 };
 
 }  // namespace tasks
-
-#endif  // __JOB_HPP__

@@ -1,5 +1,4 @@
-#ifndef __TASK_HPP__
-#define __TASK_HPP__
+#pragma once
 
 #include <FreeRTOS.h>
 #include <etl/vector.h>
@@ -120,5 +119,3 @@ class TaskManager {
 };
 
 }  // namespace tasks
-
-#endif  // __TASK_HPP__
