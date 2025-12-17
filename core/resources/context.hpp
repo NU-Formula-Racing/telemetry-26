@@ -3,21 +3,21 @@
 namespace tasks {
 class TaskManager;
 }
-class ILoraInterface;
-class IUsbInterface;
-class ICanInterface;
-class ISdInterface;
-class IRtcInterface;
+class ILora;
+class IUsb;
+class ICan;
+class ISd;
+class IRtc;
 
 namespace resources {
 
 struct Context {
   tasks::TaskManager* taskManager = nullptr;
-  ILoraInterface* lora = nullptr;
-  IUsbInterface* usb = nullptr;
-  ICanInterface* can = nullptr;
-  ISdInterface* sd = nullptr;
-  IRtcInterface* rtc = nullptr;
+  ILora* lora = nullptr;
+  IUsb* usb = nullptr;
+  ICan* can = nullptr;
+  ISd* sd = nullptr;
+  IRtc* rtc = nullptr;
 };
 
 }  // namespace resources
