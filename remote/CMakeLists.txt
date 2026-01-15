@@ -27,6 +27,7 @@ if(CMAKE_CROSSCOMPILING)
         -ffunction-sections
         -Wall
         -Wextra
+        --specs=nano.specs 
         $<$<CONFIG:Debug>:-Og>
     )
 
@@ -35,12 +36,20 @@ if(CMAKE_CROSSCOMPILING)
         -mthumb
         -mfpu=fpv4-sp-d16
         -mfloat-abi=hard
-        --specs=nosys.specs 
+        --specs=nano.specs 
         -Wl,--gc-sections
         -Wl,--print-memory-usage
-        # -T${CMAKE_CURRENT_SOURCE_DIR}/STM32F405RGTx_FLASH.ld
     )
 
+    set( FREERTOS_HEAP "4" CACHE STRING "" FORCE)
+    # Select the native compile PORT
+    set( FREERTOS_PORT "GCC_POSIX" CACHE STRING "" FORCE)
+    # Select the cross-compile PORT
+    set(FREERTOS_PORT "GCC_ARM_CM4F" CACHE STRING "" FORCE)
+
+    add_subdirectory(bsp)
+    add_library(platform_bsp ALIAS remote_bsp) # inject remote bsp alias so core can find it
+    target_compile_options(remote_bsp PRIVATE -w) # turn off warnings for STM32CubeMX generated code
 else()
     message(STATUS "Configuring for NATIVE Host...")
     
@@ -51,10 +60,10 @@ endif()
 # add shared directories
 add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 add_subdirectory(src/app)
+add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
 
 if(CMAKE_CROSSCOMPILING)
-    add_subdirectory(bsp)
-
+    # build .elf for target
     add_executable(remote.elf src/main.cpp)               
 
     target_include_directories(remote.elf PRIVATE 
@@ -67,15 +76,22 @@ if(CMAKE_CROSSCOMPILING)
                             remote_bsp 
                             core_drivers
                             core_interfaces
+                            core_tasks
+                            core_resources
+                            freertos_kernel
+                            freertos_config
                          )
- 
+
+    add_subdirectory(../third-party/freertos ${CMAKE_BINARY_DIR}/freertos)
+
+    # generate .bin and .hex from .elf using objcopy
     find_program(CMAKE_OBJCOPY NAMES arm-none-eabi-objcopy)
  
     add_custom_command(
         TARGET remote.elf POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:remote.elf> $<TARGET_FILE_DIR:remote.elf>/remote.bin
         COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:remote.elf> $<TARGET_FILE_DIR:remote.elf>/remote.hex
-        COMMENT "Generating remote .bin and .hex files"
+        COMMENT "Generated remote .bin and .hex files"
     )
 
 else()
