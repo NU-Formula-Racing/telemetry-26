@@ -1,7 +1,7 @@
 add_library(remote_bsp OBJECT)
 
 target_sources(remote_bsp PRIVATE
-    Core/Src/main.c 
+    Core/Src/main.c
     Core/Src/stm32f4xx_it.c 
     Core/Src/stm32f4xx_hal_msp.c 
     Core/Src/stm32f4xx_hal_timebase_tim.c 
@@ -47,7 +47,7 @@ target_sources(remote_bsp PRIVATE
     Core/Src/sysmem.c 
     Core/Src/syscalls.c  
 
-    startup_stm32f405xx.s
+    # startup_stm32f405xx.s
 )
 
 target_include_directories(remote_bsp PUBLIC

@@ -91,7 +91,7 @@ if(CMAKE_CROSSCOMPILING)
         TARGET base-station.elf POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:base-station.elf> $<TARGET_FILE_DIR:base-station.elf>/base-station.bin
         COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:base-station.elf> $<TARGET_FILE_DIR:base-station.elf>/base-station.hex
-        COMMENT "Generating base-station .bin and .hex files..."
+        COMMENT "Generated base-station .bin and .hex files"
     )
 
 else()

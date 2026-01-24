@@ -64,7 +64,9 @@ add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
 
 if(CMAKE_CROSSCOMPILING)
     # build .elf for target
-    add_executable(remote.elf src/main.cpp)               
+    add_executable(remote.elf src/main.cpp
+    bsp/startup_stm32f405xx.s
+    )               
 
     target_include_directories(remote.elf PRIVATE 
                                ${CMAKE_CURRENT_SOURCE_DIR}/src/app

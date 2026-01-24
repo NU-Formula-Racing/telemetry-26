@@ -23,6 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
+
+#include "../../USB_DEVICE/App/usbd_cdc_if.h"
 
 /* USER CODE END Includes */
 
@@ -108,8 +111,19 @@ void BspInit(void) {
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  // while (1)
-  // {
+  // while (1) {
+  // 1. Blink the LED so we know the board is alive
+  //	          HAL_GPIO_TogglePin(LORA_LED_GPIO_Port, LORA_LED_Pin);
+
+  // 2. Define the message
+  // const char* msg = "Hello World\r\n";
+
+  // 3. Transmit over USB
+  // CDC_Transmit_FS takes a uint8_t pointer and the length of the data
+  // CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
+
+  // 4. Wait
+  // HAL_Delay(1000);
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -352,7 +366,7 @@ static void MX_GPIO_Init(void) {
 
 /**
  * @brief  Period elapsed callback in non blocking mode
- * @note   This function is called  when TIM6 interrupt took place, inside
+ * @note   This function is called  when TIM5 interrupt took place, inside
  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
  * a global variable "uwTick" used as application time base.
  * @param  htim : TIM handle
@@ -362,7 +376,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM6) {
+  if (htim->Instance == TIM5) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
