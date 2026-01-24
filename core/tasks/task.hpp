@@ -1,6 +1,6 @@
 #pragma once
 
-#include <FreeRTOS.h>
+// #include <FreeRTOS.h>
 #include <etl/vector.h>
 #include <task.h>
 
@@ -98,6 +98,9 @@ class FreeRtosTask final : public AbstractTask {
 // TaskManager class to manage multiple tasks
 class TaskManager {
  public:
+  TaskManager() = default;
+  ~TaskManager() = default;
+
   bool addTask(AbstractTask* task) {
     if (tasks_.size() < maxTasks_) {
       tasks_.push_back(task);

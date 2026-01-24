@@ -21,6 +21,7 @@
 
 #include "usb_device.h"
 
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
@@ -77,7 +78,7 @@ static void MX_SPI2_Init(void);
  * @brief  The application entry point.
  * @retval int
  */
-void BspInit(void) {
+int BspInit(void) {
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
