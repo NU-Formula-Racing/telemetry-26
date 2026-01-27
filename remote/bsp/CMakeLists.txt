@@ -5,6 +5,7 @@ target_sources(remote_bsp PRIVATE
     Core/Src/stm32f4xx_it.c 
     Core/Src/stm32f4xx_hal_msp.c 
     Core/Src/stm32f4xx_hal_timebase_tim.c 
+    Core/Src/FreeRTOSStaticAlloc.c
 
     USB_DEVICE/App/usb_device.c 
     USB_DEVICE/App/usbd_desc.c 
@@ -60,6 +61,12 @@ target_include_directories(remote_bsp PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_include_directories(remote_bsp PRIVATE
+  ${CMAKE_SOURCE_DIR}/../third-party/freertos/include
+  ${CMAKE_SOURCE_DIR}/../third-party/freertos/portable/GCC/ARM_CM4F
 )
 
 target_compile_definitions(remote_bsp PUBLIC

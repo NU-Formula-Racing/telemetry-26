@@ -1,10 +1,11 @@
 #pragma once
 
-// #include <FreeRTOS.h>
+#include <FreeRTOS.h>
 #include <etl/vector.h>
 #include <task.h>
 
 #include <cstdint>
+#include <variant>
 
 #include "job.hpp"
 
@@ -20,11 +21,11 @@ enum class TaskPriority : UBaseType_t {
 
 // stack allocated per task (in words, NOT BYTES)
 enum class TaskStackSize : uint32_t {
-  VERY_SMALL = 256,
-  SMALL = 512,
-  MEDIUM = 1024,
-  LARGE = 2048,
-  VERY_LARGE = 4096,
+  SMALL = 128,
+  MEDIUM = 256,
+  LARGE = 512,
+  // LARGE = 1024,
+  // VERY_LARGE = 2048,
 };
 
 struct TaskConfig {
@@ -43,8 +44,8 @@ class AbstractTask {
 
   AbstractTask(const AbstractTask&) = delete;
   AbstractTask& operator=(const AbstractTask&) = delete;
-  AbstractTask(AbstractTask&&) = delete;
-  AbstractTask& operator=(AbstractTask&&) = delete;
+  AbstractTask(AbstractTask&&) = default;
+  AbstractTask& operator=(AbstractTask&&) = default;
 
   virtual void start() = 0;
 };
@@ -58,26 +59,26 @@ class FreeRtosTask final : public AbstractTask {
   FreeRtosTask(const TaskConfig& config) : config_(config) {}
   ~FreeRtosTask() override = default;
 
-  // delete copy and move
+  // delete copy
   FreeRtosTask(const FreeRtosTask&) = delete;
   FreeRtosTask& operator=(const FreeRtosTask&) = delete;
-  FreeRtosTask(FreeRtosTask&&) = delete;
-  FreeRtosTask& operator=(FreeRtosTask&&) = delete;
+  FreeRtosTask(FreeRtosTask&&) = default;
+  FreeRtosTask& operator=(FreeRtosTask&&) = default;
 
   void start() override {
     handle_ = xTaskCreateStatic(FreeRtosTask::entryPoint,  // ptr to function that implements task
                                 config_.name,              // task name (for debugging)
-                                static_cast<uint32_t>(StackSize),  // stack size in words
-                                this,                              // task parameters
-                                config_.priority,                  // task priority
-                                stackBuffer_,                      // memory for stack
-                                &taskBuffer_                       // memory for tcb
+                                static_cast<uint32_t>(StackSize),            // stack size in words
+                                this,                                        // task parameters
+                                static_cast<UBaseType_t>(config_.priority),  // task priority
+                                stackBuffer_,                                // memory for stack
+                                &taskBuffer_                                 // memory for tcb
     );
   }
 
  private:
   static void entryPoint(void* params) {
-    FreeRtosTask* task = static_cast<FreeRtosTask*>(params);
+    auto task = static_cast<FreeRtosTask*>(params);
 
     task->config_.job.init();
     TickType_t lastWakeTime = xTaskGetTickCount();
@@ -96,14 +97,24 @@ class FreeRtosTask final : public AbstractTask {
 };
 
 // TaskManager class to manage multiple tasks
+using FreeRtosTaskVariant =
+    std::variant<FreeRtosTask<TaskStackSize::SMALL>, FreeRtosTask<TaskStackSize::MEDIUM>,
+                 FreeRtosTask<TaskStackSize::LARGE> /*FreeRtosTask<TaskStackSize::LARGE>,
+                 FreeRtosTask<TaskStackSize::VERY_LARGE>*/>;
 class TaskManager {
  public:
   TaskManager() = default;
   ~TaskManager() = default;
 
-  bool addTask(AbstractTask* task) {
+  TaskManager(const TaskManager&) = delete;
+  TaskManager& operator=(const TaskManager&) = delete;
+  TaskManager(TaskManager&&) = delete;
+  TaskManager& operator=(TaskManager&&) = delete;
+
+  template <TaskStackSize StackSize>
+  bool addTask(FreeRtosTask<StackSize>&& task) {
     if (tasks_.size() < maxTasks_) {
-      tasks_.push_back(task);
+      tasks_.emplace_back(std::in_place_type<FreeRtosTask<StackSize>>, std::move(task));
       return true;
     }
     return false;
@@ -111,13 +122,13 @@ class TaskManager {
 
   void startAllTasks() {
     for (auto& task : tasks_) {
-      task->start();
+      std::visit([](auto& t) { t.start(); }, task);
     }
   }
 
  private:
-  static constexpr size_t maxTasks_ = 20;
-  etl::vector<AbstractTask*, maxTasks_> tasks_;
+  static constexpr size_t maxTasks_ = 10;
+  etl::vector<FreeRtosTaskVariant, maxTasks_> tasks_{};
 };
 
 }  // namespace tasks

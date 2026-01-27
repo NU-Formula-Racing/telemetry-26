@@ -10,12 +10,58 @@
 #include "../bsp/USB_DEVICE/App/usbd_cdc_if.h"
 #include "app/app.hpp"
 
+// TODO: //
+// sanity check freertos task to blink led and print hello world over usb
+// then integrate into taskman
+// write usb debug
+// do all the following in tasks:
+// read from CAN
+// write to CAN
+// write CAN driver
+// write to SD
+// read from SD, less of a priority
+// write SD driver
+// read RTC
+// write RTC driver
+
+// not needed for EI MVP:
+// send lora
+// receive lora
+// write lora driver
+// clean up long ahh includes
+// change cmake to lint regardless of platform
+
 extern "C" void BspInit(void);
 // get STM HAL peripheral handlers
 // extern SPI_HandleTypeDef hspi2;
 
+// extremely simple test blinky for now
+class BlinkJob : public tasks::IJob {
+ public:
+  BlinkJob() = default;
+  ~BlinkJob() override = default;
+
+  // delete copy and move
+  BlinkJob(const BlinkJob&) = delete;
+  BlinkJob& operator=(const BlinkJob&) = delete;
+  BlinkJob(BlinkJob&&) = delete;
+  BlinkJob& operator=(BlinkJob&&) = delete;
+
+  void init() override {
+    const char* msg = "BlinkJob initialized\r\n";
+    CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
+  }
+
+  void run() override {
+    HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
+    const char* msg = "Hello World\r\n";
+    CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
+  }
+};
+
 int main() {
   BspInit();
+
   // instantiate task manager
   static tasks::TaskManager taskMan;
 
@@ -38,15 +84,20 @@ int main() {
   // entire registry
   // can also setup tasks in ctor of app, tasks can be initialized in private variable section
 
+  BlinkJob blinkJob;
+  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
+      tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
+
   // start all tasks
+  taskMan.addTask(std::move(blinkTask));
   taskMan.startAllTasks();
   // vTaskStartScheduler() should be the last thing called before while(true)
   vTaskStartScheduler();
 
   while (true) {
-    HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
-    const char* msg = "Hello World\r\n";
-    CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
-    HAL_Delay(1000);
+    // HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
+    // const char* msg = "Hello World\r\n";
+    // CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
+    // HAL_Delay(1000);
   }
 }
