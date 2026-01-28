@@ -48,6 +48,7 @@ class BlinkJob : public tasks::IJob {
   BlinkJob& operator=(BlinkJob&&) = delete;
 
   void init() override {
+    HAL_GPIO_WritePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin, GPIO_PIN_RESET);  // turn led off
     const char* msg = "BlinkJob initialized\r\n";
     CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
   }
@@ -84,19 +85,19 @@ int main() {
   // entire registry
   // can also setup tasks in ctor of app, tasks can be initialized in private variable section
 
-  BlinkJob blinkJob;
+  static BlinkJob blinkJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  taskMan.startAllTasks();
-  // vTaskStartScheduler() should be the last thing called before while(true)
-  vTaskStartScheduler();
+  taskMan.startAllTasks();  // broken when uncommented
+  // vTaskStartScheduler() should be the last thing called before
+  vTaskStartScheduler();  // when uncommented: LED stays on, usb doesnt enumerate
 
   while (true) {
-    // HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
-    // const char* msg = "Hello World\r\n";
+    // HAL_GPIO_TogglePin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin);  // doesnt work with lora pin btw
+    // const char* msg = "Hello World Loop\r\n";
     // CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
     // HAL_Delay(1000);
   }
