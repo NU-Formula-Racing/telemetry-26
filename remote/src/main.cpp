@@ -6,13 +6,12 @@
 
 #include "../../core/resources/context.hpp"
 #include "../../core/tasks/task.hpp"
+#include "../../core/utils/utils.hpp"
 #include "../bsp/USB_DEVICE/App/usb_device.h"
 #include "../bsp/USB_DEVICE/App/usbd_cdc_if.h"
 #include "app/app.hpp"
 
 // TODO: //
-// sanity check freertos task to blink led and print hello world over usb
-// then integrate into taskman
 // write usb debug
 // do all the following in tasks:
 // read from CAN
@@ -49,19 +48,20 @@ class BlinkJob : public tasks::IJob {
 
   void init() override {
     HAL_GPIO_WritePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin, GPIO_PIN_RESET);  // turn led off
-    const char* msg = "BlinkJob initialized\r\n";
-    CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
+    DEBUG_OUT("BlinkJob", GREEN, "BlinkJob initialized\r\n");
   }
 
   void run() override {
     HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
-    const char* msg = "Hello World\r\n";
-    CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
+    DEBUG_OUT("blinkJob", MAGENTA, "Hello World\r\n");
+    PRINT("BlinkJob: LED toggled\r\n");
   }
 };
 
 int main() {
   BspInit();
+
+  VERBOSITY(Verbosity::VERBOSE);
 
   // instantiate task manager
   static tasks::TaskManager taskMan;
@@ -91,14 +91,9 @@ int main() {
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  taskMan.startAllTasks();  // broken when uncommented
-  // vTaskStartScheduler() should be the last thing called before
-  vTaskStartScheduler();  // when uncommented: LED stays on, usb doesnt enumerate
+  taskMan.startAllTasks();
+  vTaskStartScheduler();
 
   while (true) {
-    // HAL_GPIO_TogglePin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin);  // doesnt work with lora pin btw
-    // const char* msg = "Hello World Loop\r\n";
-    // CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
-    // HAL_Delay(1000);
   }
 }
