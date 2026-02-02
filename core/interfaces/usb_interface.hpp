@@ -7,11 +7,9 @@ class IUsb {
   IUsb() = default;
 
   // basic functionality needed:
-  // init, configure usb (device descriptors, endpoints)
+  // init ?
   // send data
-  // receive data
-
-  // id like to do something with debug macros and map them to usb methods - utils file, 322 type
+  // receive data ?
 
  private:
 };

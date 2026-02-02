@@ -70,7 +70,10 @@ if(CMAKE_CROSSCOMPILING)
 
     target_include_directories(remote.elf PRIVATE 
                                ${CMAKE_CURRENT_SOURCE_DIR}/src/app
+                               ${CMAKE_CURRENT_SOURCE_DIR}/bsp/Core/Inc
+                               ${CMAKE_CURRENT_SOURCE_DIR}/bsp/FATFS
                                ${CMAKE_CURRENT_SOURCE_DIR}/bsp
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../core
                               )
  
     target_link_libraries(remote.elf PRIVATE

@@ -1,5 +1,4 @@
 #pragma once
-#include <format>
 #include <iostream>
 
 #include "usbd_cdc_if.h"
@@ -55,8 +54,9 @@ class Debug {
 
   template <typename... Args>
   void error(Args&&... args) {
-    std::cerr << "ERROR: ";
-    (std::cerr << ... << std::forward<Args>(args)) << std::endl;
+    std::string msg = "ERROR: ";
+    (append(msg, std::string_view{std::forward<Args>(args)}), ...);
+    CDC_Transmit_FS((uint8_t*)msg.data(), static_cast<uint16_t>(msg.size()));
   }
 
   template <typename... Args>
@@ -65,7 +65,7 @@ class Debug {
       std::string msg;
       (append(msg, std::string_view{std::forward<Args>(args)}), ...);
       const std::string result = "DEBUG: " + msg;
-      CDC_Transmit_FS((uint8_t*)result.c_str(), result.length());
+      CDC_Transmit_FS((uint8_t*)result.data(), static_cast<uint16_t>(result.size()));
     }
   }
 
@@ -73,6 +73,6 @@ class Debug {
   void print(Args&&... args) {
     std::string msg;
     (append(msg, std::string_view{std::forward<Args>(args)}), ...);
-    CDC_Transmit_FS((uint8_t*)msg.c_str(), msg.length());
+    CDC_Transmit_FS((uint8_t*)msg.data(), static_cast<uint16_t>(msg.size()));
   }
 };

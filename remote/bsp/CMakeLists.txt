@@ -40,6 +40,15 @@ target_sources(remote_bsp PRIVATE
 
     Core/Src/system_stm32f4xx.c 
 
+    FATFS/App/fatfs.c 
+    FATFS/Target/bsp_driver_sd.c 
+    FATFS/Target/sd_diskio.c 
+    FATFS/Target/fatfs_platform.c 
+    Middlewares/Third_Party/FatFs/src/diskio.c 
+    Middlewares/Third_Party/FatFs/src/ff.c 
+    Middlewares/Third_Party/FatFs/src/ff_gen_drv.c 
+    Middlewares/Third_Party/FatFs/src/option/syscall.c
+
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c 
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c 
     Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c 
@@ -57,6 +66,8 @@ target_include_directories(remote_bsp PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Core/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy
+    ${CMAKE_CURRENT_SOURCE_DIR}/FATFS/App
+    ${CMAKE_CURRENT_SOURCE_DIR}/FATFS/Target
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F4xx/Include
