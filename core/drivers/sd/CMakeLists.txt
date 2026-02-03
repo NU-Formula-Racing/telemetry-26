@@ -4,7 +4,9 @@ add_library(core_sd
             sd.cpp
             )
 
-target_link_libraries(core_sd PRIVATE platform_bsp)
+target_link_libraries(core_sd 
+                      PUBLIC etl
+                      PRIVATE platform_bsp)
 
 target_include_directories(core_sd PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}
