@@ -9,6 +9,22 @@ namespace sd {
 
 enum class SdResult : uint8_t { OK, ERROR, BUSY, TIMEOUT };
 
+// TODO: should these have corresponding values
+enum class SdFileMode : uint8_t {
+  READ,
+  WRITE,
+  OPEN_EXISTING,
+  CREATE_ALWAYS,
+  CREATE_NEW,
+  OPEN_ALWAYS,
+  OPEN_APPEND
+};
+
+// operator overloading to allow "FileMode::WRITE | FileMode::OPEN_ALWAYS"
+inline SdFileMode operator|(SdFileMode a, SdFileMode b) {
+  return static_cast<SdFileMode>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
 class ISdDriver {
  public:
   virtual ~ISdDriver() = default;
@@ -20,8 +36,8 @@ class ISdDriver {
   virtual bool isDetected() = 0;
 
   // open a file
-  // TODO: add some argument with different modes (read, write, append, create, etc.)
-  virtual SdResult openFile(const std::string& filename) = 0;
+  // filename must follow 8.3 format unless LFN is enabled
+  virtual SdResult openFile(const std::string& filename, SdFileMode mode) = 0;
 
   // read/write blocks of data
   virtual SdResult write(std::span<const uint8_t> data) = 0;
@@ -34,21 +50,17 @@ class ISdDriver {
 };
 
 // SD manager class
-// TODO: read, statuses
+// TODO: read, statuses, directories (ie. new directory for each drive day), automatically correctly
+// increment file names
 class SdCard {
  public:
   SdCard(ISdDriver& driver) : driver_(driver) {};
 
   // initialize the SD card and open a file
-  // TODO: add argument(s) to specify file mode, std::string_view ?
-  SdResult init(const std::string& fil) {
-    //  check (preferably statically) that file name follows 8.3 format, print to enable LFN if too
-    //  long
-    // since this check prob has to happen at runtime for my application (but not everyone!):
-    // i can call a driver function to check if LFN is enabled, return a "name too long" error code,
-    // blink SD status LED a certain way and print an error
+  // filename must follow 8.3 format unless LFN is enabled
+  SdResult init(const std::string& fil, SdFileMode mode) {
     driver_.init();
-    return driver_.openFile(fil);
+    return driver_.openFile(fil, mode);
   }
 
   // write some raw data to the internal SD buffer
@@ -64,6 +76,8 @@ class SdCard {
       internalBuffer_.push_back(i);
     }
   }
+
+  // TODO: read
 
   // function to be called periodically to flush internal buffer to the card
   // every 200-500ms for now

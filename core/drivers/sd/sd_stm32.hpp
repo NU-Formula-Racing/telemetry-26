@@ -17,10 +17,15 @@ class Stm32SdDriver : public ISdDriver {
   ~Stm32SdDriver() override;
 
   virtual SdResult init() override;
+
   virtual bool isDetected() override;
-  virtual SdResult openFile(const std::string& filename) override;
+
+  virtual SdResult openFile(const std::string& filename, SdFileMode mode) override;
+
   virtual SdResult write(std::span<const uint8_t> data) override;
+
   virtual SdResult read(std::span<uint8_t> data) override;
+
   virtual SdResult flush() override;
 
  private:

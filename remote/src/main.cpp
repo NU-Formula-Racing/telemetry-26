@@ -22,6 +22,7 @@
 // write SD driver
 // read RTC
 // write RTC driver
+// write app to log
 
 // not needed for EI MVP:
 // send lora
