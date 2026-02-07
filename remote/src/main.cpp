@@ -4,8 +4,6 @@
 
 #include <cstring>
 
-#include "FATFS/App/fatfs.h"
-#include "USB_DEVICE/App/usbd_cdc_if.h"
 #include "app/app.hpp"
 #include "drivers/sd/sd.hpp"
 #include "drivers/sd/sd_stm32.hpp"
@@ -35,6 +33,7 @@
 extern "C" void BspInit(void);
 // get STM HAL peripheral handlers
 // extern SPI_HandleTypeDef hspi2;
+extern "C" RTC_HandleTypeDef hrtc;
 
 class PrintJob : public tasks::IJob {
  public:
@@ -136,6 +135,82 @@ class SdPeriodicSyncJob : public tasks::IJob {
   sd::SdCard& sdCard_;
 };
 
+class RtcReadJob : public tasks::IJob {
+ public:
+  // RtcReadJob(rtc::Rtc& rtc) : rtc_(rtc) {}
+
+  RtcReadJob() = default;
+  ~RtcReadJob() override = default;
+
+  // delete copy and move
+  RtcReadJob(const RtcReadJob&) = delete;
+  RtcReadJob& operator=(const RtcReadJob&) = delete;
+  RtcReadJob(RtcReadJob&&) = delete;
+  RtcReadJob& operator=(RtcReadJob&&) = delete;
+
+  void init() override {
+    // resetTimeAndDate();
+
+    // sTime_.Hours = 15;    // 3pm
+    // sTime_.Minutes = 14;  // 14 minutes
+    // sTime_.Seconds = 0;   // 0 seconds
+    // sTime_.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+    // sTime_.StoreOperation = RTC_STOREOPERATION_RESET;
+    // sTime_.TimeFormat = RTC_HOURFORMAT_24;
+    // if (HAL_RTC_SetTime(&hrtc, &sTime_, RTC_FORMAT_BIN) != HAL_OK) {
+    //   // error
+    // }
+
+    // sDate_.WeekDay = RTC_WEEKDAY_SATURDAY;  // saturday ?
+    // sDate_.Month = RTC_MONTH_FEBRUARY;      // feb
+    // sDate_.Date = 7;                        // 7th
+    // sDate_.Year = 26;                       // 2026
+    // if (HAL_RTC_SetDate(&hrtc, &sDate_, RTC_FORMAT_BIN) != HAL_OK) {
+    //   // error
+    // }
+
+    // HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x2345);  // writing to backup register, can check
+    // this to verify RTC is setup in an init to avoid re writing time on every reset
+  }
+
+  void run() override {
+    HAL_RTC_GetTime(&hrtc, &sTime_, RTC_FORMAT_BIN);
+    HAL_RTC_GetDate(&hrtc, &sDate_, RTC_FORMAT_BIN);
+
+    const auto timeStr = "RTC Time: " + std::to_string(sTime_.Hours) + ":" +
+                         std::to_string(sTime_.Minutes) + ":" + std::to_string(sTime_.Seconds);
+    const auto dateStr = "RTC Date: " + std::to_string(sDate_.Month) + "/" +
+                         std::to_string(sDate_.Date) + "/" + std::to_string(sDate_.Year);
+
+    DEBUG_OUT("RtcReadJob", BLUE, timeStr.c_str(), "\r\n");
+    HAL_Delay(2);
+    DEBUG_OUT("RtcReadJob", BLUE, dateStr.c_str(), "\r\n");
+  }
+
+  void resetTimeAndDate() {
+    // reset time
+    // sTime_ = {0};
+    sTime_.Minutes = 0;
+    sTime_.Seconds = 0;
+    sTime_.TimeFormat = RTC_HOURFORMAT_24;
+    sTime_.SubSeconds = 0;
+    sTime_.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+    sTime_.StoreOperation = RTC_STOREOPERATION_RESET;
+
+    // reset date
+    // sDate_ = {0};
+    sDate_.Month = RTC_MONTH_FEBRUARY;
+    sDate_.Date = 7;
+    sDate_.Year = 26;
+    // sDate_.WeekDay = RTC_WEEKDAY_SATURDAY;
+  }
+
+ private:
+  // rtc::Rtc& rtc_;
+  RTC_TimeTypeDef sTime_;  //= {0};
+  RTC_DateTypeDef sDate_;  //= {0};
+};
+
 int main() {
   BspInit();
 
@@ -171,21 +246,27 @@ int main() {
 
   static PrintJob printJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> printTask(
-      tasks::TaskConfig{"PrintTask", tasks::TaskPriority::LOW, 1500, printJob});
+      tasks::TaskConfig{"PrintTask", tasks::TaskPriority::LOW, 2500, printJob});
 
   static SdWriteJob sdWriteJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
-      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 10, sdWriteJob});
+      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 2000, sdWriteJob});
 
   static SdPeriodicSyncJob sdSyncJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
-      tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
+      tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 5000, sdSyncJob});
+
+  // static RtcReadJob rtcReadJob(*ctx.rtc);
+  static RtcReadJob rtcReadJob;
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcReadTask(
+      tasks::TaskConfig{"RtcReadTask", tasks::TaskPriority::STANDARD, 300, rtcReadJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(printTask));
   taskMan.addTask(std::move(sdWriteTask));
   taskMan.addTask(std::move(sdPeriodicSyncTask));
+  taskMan.addTask(std::move(rtcReadTask));
   taskMan.startAllTasks();
   vTaskStartScheduler();
 
