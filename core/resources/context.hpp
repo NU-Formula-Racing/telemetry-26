@@ -1,33 +1,18 @@
 #pragma once
-
-namespace tasks {
-class TaskManager;
-}
-namespace lora {
-class ILora;
-}
-namespace usb {
-class IUsb;
-}
-namespace can {
-class ICan;
-}
-namespace sd {
-class ISd;
-}
-namespace rtc {
-class IRtc;
-}
+#include "drivers/rtc/rtc.hpp"
+#include "drivers/sd/sd.hpp"
+#include "drivers/sd/sd_stm32.hpp"
+#include "tasks/task.hpp"
 
 namespace resources {
 
 struct Context {
   tasks::TaskManager* taskManager = nullptr;
-  lora::ILora* lora = nullptr;
-  usb::IUsb* usb = nullptr;
-  can::ICan* can = nullptr;
-  sd::ISd* sd = nullptr;
-  rtc::IRtc* rtc = nullptr;
+  // lora::ILora* lora = nullptr;
+  // usb::IUsb* usb = nullptr;
+  // can::ICan* can = nullptr;
+  sd::SdCard* sd = nullptr;
+  rtc::Rtc* rtc = nullptr;
 };
 
 }  // namespace resources

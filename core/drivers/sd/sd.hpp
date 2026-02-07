@@ -9,20 +9,19 @@ namespace sd {
 
 enum class SdResult : uint8_t { OK, ERROR, BUSY, TIMEOUT };
 
-// TODO: should these have corresponding values
 enum class SdFileMode : uint8_t {
-  READ,
-  WRITE,
-  OPEN_EXISTING,
-  CREATE_ALWAYS,
-  CREATE_NEW,
-  OPEN_ALWAYS,
-  OPEN_APPEND
+  READ = 0x01,
+  WRITE = 0x02,
+  OPEN_EXISTING = 0x00,
+  CREATE_ALWAYS = 0x08,
+  CREATE_NEW = 0x04,
+  OPEN_ALWAYS = 0x10,
+  OPEN_APPEND = 0x30
 };
 
 // operator overloading to allow "FileMode::WRITE | FileMode::OPEN_ALWAYS"
-inline SdFileMode operator|(SdFileMode a, SdFileMode b) {
-  return static_cast<SdFileMode>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+inline uint8_t operator|(SdFileMode a, SdFileMode b) {
+  return static_cast<uint8_t>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
 }
 
 class ISdDriver {
@@ -37,7 +36,7 @@ class ISdDriver {
 
   // open a file
   // filename must follow 8.3 format unless LFN is enabled
-  virtual SdResult openFile(const std::string& filename, SdFileMode mode) = 0;
+  virtual SdResult openFile(const std::string& filename, uint8_t mode) = 0;
 
   // read/write blocks of data
   virtual SdResult write(std::span<const uint8_t> data) = 0;
@@ -46,7 +45,7 @@ class ISdDriver {
   // manually flush internal buffers to ensure data is written to the card
   virtual SdResult flush() = 0;
 
-  // TODO: error handling (error enum, blink/solid LED, prints)
+  // TODO: error handling
 };
 
 // SD manager class
@@ -58,9 +57,10 @@ class SdCard {
 
   // initialize the SD card and open a file
   // filename must follow 8.3 format unless LFN is enabled
-  SdResult init(const std::string& filename, SdFileMode mode) {
+  SdResult init(const std::string& filename, uint8_t mode) {
+    filename_ = filename;
     driver_.init();
-    return driver_.openFile(filename, mode);
+    return driver_.openFile(filename_, mode);
   }
 
   // write some raw data to the internal SD buffer
@@ -80,13 +80,14 @@ class SdCard {
   // TODO: read
 
   // function to be called periodically to flush internal buffer to the card
-  // every 200-500ms for now
   void periodicSync() {
     if (!internalBuffer_.empty()) {
       flushBuffer();
     }
     driver_.flush();
   }
+
+  const std::string& getFilename() const { return filename_; }
 
  private:
   // send internal buffer to the card and clear it
@@ -96,6 +97,7 @@ class SdCard {
   }
 
   ISdDriver& driver_;
+  std::string filename_;
 
   // 512B internal buffer for write operations
   // aligns with standard SD allocation unit size (512 bytes per sector)

@@ -19,7 +19,6 @@
 // write to CAN in task
 // write CAN driver, make PR
 // read from SD, less of a priority
-// write SD driver
 // read RTC
 // write RTC driver
 // write app to log
@@ -57,7 +56,6 @@ class PrintJob : public tasks::IJob {
   }
 };
 
-// extremely simple test blinky for now
 class BlinkJob : public tasks::IJob {
  public:
   BlinkJob() = default;
@@ -71,7 +69,6 @@ class BlinkJob : public tasks::IJob {
 
   void init() override {
     HAL_GPIO_WritePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin, GPIO_PIN_RESET);  // turn led off
-    // DEBUG_OUT("BlinkJob", GREEN, "BlinkJob initialized\r\n");
   }
 
   void run() override {
@@ -79,7 +76,6 @@ class BlinkJob : public tasks::IJob {
     HAL_Delay(2);
     DEBUG_OUT("blinkJob", MAGENTA, "blinkJob 2\r\n");
     HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
-    // PRINT("BlinkJob: LED toggled\r\n");
   }
 };
 
@@ -95,23 +91,8 @@ class SdWriteJob : public tasks::IJob {
   SdWriteJob& operator=(SdWriteJob&&) = delete;
 
   void init() override {
-    // res_ = f_mount(&sdFatFs_, SDPath, 1);
-    // if (res_ != FR_OK) {
-    //   while (true) {
-    //     ERROR("SdWriteJob", "Mount failed, code: ", std::to_string(res_), "\r\n");
-    //     HAL_Delay(5);
-    //   }
-    // }
-
-    // res_ = f_open(&file_, "testFile.txt", FA_OPEN_ALWAYS | FA_WRITE);
-    // if (res_ != FR_OK) {
-    //   while (true) {
-    //     ERROR("SdWriteJob", "Open failed, code: ", std::to_string(res_), "\r\n");
-    //     HAL_Delay(5);
-    //   }
-    // }
-    sd::SdFileMode mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
-    const std::string filename = "example.log";
+    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
+    const std::string filename = "fast.nfr";
     sd::SdResult result = sdCard_.init(filename, mode);
 
     DEBUG_OUT("SdWriteJob", CYAN,
@@ -120,36 +101,38 @@ class SdWriteJob : public tasks::IJob {
   }
 
   void run() override {
-    // const char* line = "SD write line small\r\n";
-
-    // res_ = f_lseek(&file_, f_size(&file_));
-    // if (res_ != FR_OK) {
-    //   ERROR("SdWriteJob", "Seek failed, code: ", std::to_string(res_), "\r\n");
-    //   return;
-    // }
-
-    // res_ = f_write(&file_, line, static_cast<UINT>(std::strlen(line)), &bytesWritten_);
-    // if (res_ != FR_OK) {
-    //   ERROR("SdWriteJob", "Write failed, code: ", std::to_string(res_), "\r\n");
-    //   return;
-    // }
-
-    // DEBUG_OUT("SdWriteJob", CYAN, "tried to write ", std::to_string(bytesWritten_),
-    //           " bytes to SD\r\n");
-    // f_sync(&file_);
-
-    const std::string line = "writing a line :D\r\n";
+    const std::string line = "hello nfr\r\n";
 
     sdCard_.write(
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
+
+    DEBUG_OUT("SdWriteJob", CYAN, "Wrote a line to SD file ", sdCard_.getFilename(), "\r\n");
   }
 
  private:
   sd::SdCard& sdCard_;
-  // FATFS sdFatFs_{};
-  // FIL file_{};
-  // FRESULT res_{FR_OK};
-  // UINT bytesWritten_{0};
+};
+
+class SdPeriodicSyncJob : public tasks::IJob {
+ public:
+  SdPeriodicSyncJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
+  ~SdPeriodicSyncJob() override = default;
+
+  // delete copy and move
+  SdPeriodicSyncJob(const SdPeriodicSyncJob&) = delete;
+  SdPeriodicSyncJob& operator=(const SdPeriodicSyncJob&) = delete;
+  SdPeriodicSyncJob(SdPeriodicSyncJob&&) = delete;
+  SdPeriodicSyncJob& operator=(SdPeriodicSyncJob&&) = delete;
+
+  void init() override {}
+
+  void run() override {
+    sdCard_.periodicSync();
+    DEBUG_OUT("SdPeriodicSyncJob", CYAN, "Flushed SD card buffers\r\n");
+  }
+
+ private:
+  sd::SdCard& sdCard_;
 };
 
 int main() {
@@ -191,12 +174,17 @@ int main() {
 
   static SdWriteJob sdWriteJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
-      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 3005, sdWriteJob});
+      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 10, sdWriteJob});
+
+  static SdPeriodicSyncJob sdSyncJob(*ctx.sd);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
+      tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(printTask));
   taskMan.addTask(std::move(sdWriteTask));
+  taskMan.addTask(std::move(sdPeriodicSyncTask));
   taskMan.startAllTasks();
   vTaskStartScheduler();
 

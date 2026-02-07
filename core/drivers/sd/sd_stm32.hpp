@@ -3,6 +3,7 @@
 #include <span>
 
 #include "sd.hpp"
+#include "utils/utils.hpp"
 
 extern "C" {
 #include "fatfs.h"
@@ -11,6 +12,7 @@ extern "C" {
 namespace sd {
 
 // STM32-specific SD driver implementation using FATFS and HAL libraries
+// TODO: error handling, isDetected(), read()
 class Stm32SdDriver : public ISdDriver {
  public:
   Stm32SdDriver() = default;
@@ -18,15 +20,30 @@ class Stm32SdDriver : public ISdDriver {
 
   virtual SdResult init() override {
     result_ = f_mount(&sdFatFs_, SDPath, 1);
+
+    if (result_ != FR_OK) {
+      while (true) {
+        ERROR("Stm32SdDriver", "Mount failed, code: ", std::to_string(result_), "\r\n");
+        HAL_Delay(10);
+      }
+    }
+
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
   // TODO
   virtual bool isDetected() override { return true; }
 
-  virtual SdResult openFile(const std::string& filename, SdFileMode mode) override {
-    // TODO: check if static_cast<BYTE>(mode) works
-    result_ = f_open(&file_, filename.data(), static_cast<BYTE>(mode));
+  virtual SdResult openFile(const std::string& filename, uint8_t mode) override {
+    result_ = f_open(&file_, filename.data(), mode);
+
+    if (result_ != FR_OK) {
+      while (true) {
+        ERROR("Stm32SdDriver", "Mount failed, code: ", std::to_string(result_), "\r\n");
+        HAL_Delay(10);
+      }
+    }
+
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
