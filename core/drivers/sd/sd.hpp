@@ -58,9 +58,9 @@ class SdCard {
 
   // initialize the SD card and open a file
   // filename must follow 8.3 format unless LFN is enabled
-  SdResult init(const std::string& fil, SdFileMode mode) {
+  SdResult init(const std::string& filename, SdFileMode mode) {
     driver_.init();
-    return driver_.openFile(fil, mode);
+    return driver_.openFile(filename, mode);
   }
 
   // write some raw data to the internal SD buffer

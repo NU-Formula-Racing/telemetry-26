@@ -1,7 +1,7 @@
 add_library(core_sd
             # list all sd files
             sd.hpp
-            sd.cpp
+            sd_stm32.hpp
             )
 
 target_link_libraries(core_sd 

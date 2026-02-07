@@ -7,17 +7,17 @@
 #include "FATFS/App/fatfs.h"
 #include "USB_DEVICE/App/usbd_cdc_if.h"
 #include "app/app.hpp"
+#include "drivers/sd/sd.hpp"
+#include "drivers/sd/sd_stm32.hpp"
 #include "resources/context.hpp"
 #include "tasks/task.hpp"
 #include "usb_device.h"
 #include "utils/utils.hpp"
 
 // TODO: //
-// do all the following in tasks:
-// read from CAN
-// write to CAN
-// write CAN driver
-// write to SD
+// read from CAN in ISR, task
+// write to CAN in task
+// write CAN driver, make PR
 // read from SD, less of a priority
 // write SD driver
 // read RTC
@@ -28,6 +28,8 @@
 // send lora
 // receive lora
 // write lora driver
+// GPS
+// read from sd
 // clean up long ahh includes
 // change cmake to lint regardless of platform
 
@@ -81,11 +83,9 @@ class BlinkJob : public tasks::IJob {
   }
 };
 
-// NEXT TODO: change this task to periodically write to the same file in the SD card
-// rn it does nothing, seems to also break the freertos setup
 class SdWriteJob : public tasks::IJob {
  public:
-  SdWriteJob() = default;
+  SdWriteJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
   ~SdWriteJob() override = default;
 
   // delete copy and move
@@ -95,50 +95,61 @@ class SdWriteJob : public tasks::IJob {
   SdWriteJob& operator=(SdWriteJob&&) = delete;
 
   void init() override {
-    res_ = f_mount(&sdFatFs_, SDPath, 1);
-    if (res_ != FR_OK) {
-      while (true) {
-        ERROR("SdWriteJob", "Mount failed, code: ", std::to_string(res_), "\r\n");
-        HAL_Delay(5);
-      }
-    }
+    // res_ = f_mount(&sdFatFs_, SDPath, 1);
+    // if (res_ != FR_OK) {
+    //   while (true) {
+    //     ERROR("SdWriteJob", "Mount failed, code: ", std::to_string(res_), "\r\n");
+    //     HAL_Delay(5);
+    //   }
+    // }
 
-    res_ = f_open(&file_, "testFile.txt", FA_OPEN_ALWAYS | FA_WRITE);
-    if (res_ != FR_OK) {
-      while (true) {
-        ERROR("SdWriteJob", "Open failed, code: ", std::to_string(res_), "\r\n");
-        HAL_Delay(5);
-      }
-    }
+    // res_ = f_open(&file_, "testFile.txt", FA_OPEN_ALWAYS | FA_WRITE);
+    // if (res_ != FR_OK) {
+    //   while (true) {
+    //     ERROR("SdWriteJob", "Open failed, code: ", std::to_string(res_), "\r\n");
+    //     HAL_Delay(5);
+    //   }
+    // }
+    sd::SdFileMode mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
+    const std::string filename = "example.log";
+    sd::SdResult result = sdCard_.init(filename, mode);
 
-    DEBUG_OUT("SdWriteJob", CYAN, "SD Card mounted and file opened\r\n");
+    DEBUG_OUT("SdWriteJob", CYAN,
+              "SD Card mounted and file opened. Result: ", std::to_string(static_cast<int>(result)),
+              "\r\n");
   }
 
   void run() override {
-    const char* line = "SD write line small\r\n";
+    // const char* line = "SD write line small\r\n";
 
-    res_ = f_lseek(&file_, f_size(&file_));
-    if (res_ != FR_OK) {
-      ERROR("SdWriteJob", "Seek failed, code: ", std::to_string(res_), "\r\n");
-      return;
-    }
+    // res_ = f_lseek(&file_, f_size(&file_));
+    // if (res_ != FR_OK) {
+    //   ERROR("SdWriteJob", "Seek failed, code: ", std::to_string(res_), "\r\n");
+    //   return;
+    // }
 
-    res_ = f_write(&file_, line, static_cast<UINT>(std::strlen(line)), &bytesWritten_);
-    if (res_ != FR_OK) {
-      ERROR("SdWriteJob", "Write failed, code: ", std::to_string(res_), "\r\n");
-      return;
-    }
+    // res_ = f_write(&file_, line, static_cast<UINT>(std::strlen(line)), &bytesWritten_);
+    // if (res_ != FR_OK) {
+    //   ERROR("SdWriteJob", "Write failed, code: ", std::to_string(res_), "\r\n");
+    //   return;
+    // }
 
-    DEBUG_OUT("SdWriteJob", CYAN, "tried to write ", std::to_string(bytesWritten_),
-              " bytes to SD\r\n");
-    f_sync(&file_);
+    // DEBUG_OUT("SdWriteJob", CYAN, "tried to write ", std::to_string(bytesWritten_),
+    //           " bytes to SD\r\n");
+    // f_sync(&file_);
+
+    const std::string line = "writing a line :D\r\n";
+
+    sdCard_.write(
+        std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
   }
 
  private:
-  FATFS sdFatFs_{};
-  FIL file_{};
-  FRESULT res_{FR_OK};
-  UINT bytesWritten_{0};
+  sd::SdCard& sdCard_;
+  // FATFS sdFatFs_{};
+  // FIL file_{};
+  // FRESULT res_{FR_OK};
+  // UINT bytesWritten_{0};
 };
 
 int main() {
@@ -149,7 +160,9 @@ int main() {
   // instantiate task manager
   static tasks::TaskManager taskMan;
 
-  // instantiate drivers STATICALLY - lora, usb
+  // instantiate drivers & interfaces STATICALLY
+  static sd::Stm32SdDriver sdDriver;
+  static sd::SdCard sd(sdDriver);
   // pass in HAL dependencies
   // static StmLora loraDriver(&hspi2);
   // static StmUsb usbDriver;
@@ -157,11 +170,11 @@ int main() {
   // create and populate context
   static resources::Context ctx;
   ctx.taskManager = &taskMan;
-  // ctx.lora = &loraDriver;
-  // ctx.usb = &usbDriver;
-  // ctx.can = nullptr;
-  // ctx.sd = nullptr;
-  // ctx.rtc = nullptr;
+  // ctx.lora = &lora;
+  // ctx.usb = nullptr;
+  // ctx.can = &can;
+  ctx.sd = &sd;
+  // ctx.rtc = &rtc;
 
   // init remote app: should add tasks, configure app settings
   // pass in context, only store specific resources needed in app private members, dont store the
@@ -176,7 +189,7 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> printTask(
       tasks::TaskConfig{"PrintTask", tasks::TaskPriority::LOW, 1500, printJob});
 
-  static SdWriteJob sdWriteJob;
+  static SdWriteJob sdWriteJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 3005, sdWriteJob});
 
