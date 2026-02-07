@@ -34,10 +34,12 @@ class ISdDriver {
   // check if card is present
   virtual bool isDetected() = 0;
 
+  // make a new directory
+  virtual SdResult mkdir(const std::string& dirname) = 0;
+
   // open a file
   // filename must follow 8.3 format unless LFN is enabled
   virtual SdResult openFile(const std::string& filename, uint8_t mode) = 0;
-
   // read/write blocks of data
   virtual SdResult write(std::span<const uint8_t> data) = 0;
   virtual SdResult read(std::span<uint8_t> data) = 0;
@@ -55,12 +57,16 @@ class SdCard {
  public:
   SdCard(ISdDriver& driver) : driver_(driver) {};
 
-  // initialize the SD card and open a file
+  // initialize the SD card
+  SdResult init() { return driver_.init(); }
+
+  // make a new directory
+  SdResult mkdir(const std::string& dirname) { return driver_.mkdir(dirname); }
+
+  // open a file
   // filename must follow 8.3 format unless LFN is enabled
-  SdResult init(const std::string& filename, uint8_t mode) {
-    filename_ = filename;
-    driver_.init();
-    return driver_.openFile(filename_, mode);
+  SdResult openFile(const std::string& filename, uint8_t mode) {
+    return driver_.openFile(filename, mode);
   }
 
   // write some raw data to the internal SD buffer
@@ -86,8 +92,6 @@ class SdCard {
     }
     driver_.flush();
   }
-
-  const std::string& getFilename() const { return filename_; }
 
  private:
   // send internal buffer to the card and clear it

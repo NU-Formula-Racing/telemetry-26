@@ -92,25 +92,26 @@ class SdWriteJob : public tasks::IJob {
 
   void init() override {
     uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
-    const std::string filename = "fast.nfr";
-    sd::SdResult result = sdCard_.init(filename, mode);
-
-    DEBUG_OUT("SdWriteJob", CYAN,
-              "SD Card mounted and file opened. Result: ", std::to_string(static_cast<int>(result)),
-              "\r\n");
+    dirname_ = "testdir";
+    filename_ = "testdir/test.nfr";
+    sdCard_.init();
+    sdCard_.mkdir(dirname_);
+    sdCard_.openFile(filename_, mode);
   }
 
   void run() override {
-    const std::string line = "hello nfr\r\n";
+    const std::string line = "hi nfr\r\n";
 
     sdCard_.write(
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
 
-    DEBUG_OUT("SdWriteJob", CYAN, "Wrote a line to SD file ", sdCard_.getFilename(), "\r\n");
+    DEBUG_OUT("SdWriteJob", CYAN, "Wrote a line to SD file ", filename_, "\r\n");
   }
 
  private:
   sd::SdCard& sdCard_;
+  std::string dirname_;
+  std::string filename_;
 };
 
 class SdPeriodicSyncJob : public tasks::IJob {

@@ -19,7 +19,7 @@ class Stm32SdDriver : public ISdDriver {
   ~Stm32SdDriver() override = default;
 
   virtual SdResult init() override {
-    result_ = f_mount(&sdFatFs_, SDPath, 1);
+    result_ = f_mount(&sdFatFs_, (TCHAR const*)"0:", 1);
 
     if (result_ != FR_OK) {
       while (true) {
@@ -33,6 +33,11 @@ class Stm32SdDriver : public ISdDriver {
 
   // TODO
   virtual bool isDetected() override { return true; }
+
+  virtual SdResult mkdir(const std::string& dirname) override {
+    result_ = f_mkdir(dirname.data());
+    return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
+  }
 
   virtual SdResult openFile(const std::string& filename, uint8_t mode) override {
     result_ = f_open(&file_, filename.data(), mode);
