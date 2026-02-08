@@ -57,6 +57,12 @@ class SdCard {
  public:
   SdCard(ISdDriver& driver) : driver_(driver) {};
 
+  // delete copy and move
+  SdCard(const SdCard&) = delete;
+  SdCard& operator=(const SdCard&) = delete;
+  SdCard(SdCard&&) = delete;
+  SdCard& operator=(SdCard&&) = delete;
+
   // initialize the SD card
   SdResult init() { return driver_.init(); }
 

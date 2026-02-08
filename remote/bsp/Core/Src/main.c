@@ -22,7 +22,6 @@
 #include "fatfs.h"
 #include "usb_device.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
@@ -49,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
-RTC_HandleTypeDef hrtc;
+// RTC_HandleTypeDef hrtc;
 
 SD_HandleTypeDef hsd;
 DMA_HandleTypeDef hdma_sdio_tx;
@@ -219,55 +218,55 @@ static void MX_CAN1_Init(void) {
  * @retval None
  */
 static void MX_RTC_Init(void) {
-  /* USER CODE BEGIN RTC_Init 0 */
+  // /* USER CODE BEGIN RTC_Init 0 */
 
-  /* USER CODE END RTC_Init 0 */
+  // /* USER CODE END RTC_Init 0 */
 
-  RTC_TimeTypeDef sTime = {0};
-  RTC_DateTypeDef sDate = {0};
+  // RTC_TimeTypeDef sTime = {0};
+  // RTC_DateTypeDef sDate = {0};
 
-  /* USER CODE BEGIN RTC_Init 1 */
+  // /* USER CODE BEGIN RTC_Init 1 */
 
-  /* USER CODE END RTC_Init 1 */
+  // /* USER CODE END RTC_Init 1 */
 
-  /** Initialize RTC Only
-   */
-  hrtc.Instance = RTC;
-  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-  hrtc.Init.AsynchPrediv = 127;
-  hrtc.Init.SynchPrediv = 255;
-  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK) {
-    Error_Handler();
-  }
+  // /** Initialize RTC Only
+  //  */
+  // hrtc.Instance = RTC;
+  // hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  // hrtc.Init.AsynchPrediv = 127;
+  // hrtc.Init.SynchPrediv = 255;
+  // hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  // hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  // hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  // if (HAL_RTC_Init(&hrtc) != HAL_OK) {
+  //   Error_Handler();
+  // }
 
-  /* USER CODE BEGIN Check_RTC_BKUP */
+  // /* USER CODE BEGIN Check_RTC_BKUP */
 
-  /* USER CODE END Check_RTC_BKUP */
+  // /* USER CODE END Check_RTC_BKUP */
 
-  /** Initialize RTC and set the Time and Date
-   */
-  sTime.Hours = 15;
-  sTime.Minutes = 40;
-  sTime.Seconds = 0;
-  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
-  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
-    Error_Handler();
-  }
-  sDate.WeekDay = RTC_WEEKDAY_SATURDAY;
-  sDate.Month = RTC_MONTH_FEBRUARY;
-  sDate.Date = 7;
-  sDate.Year = 26;
+  // /** Initialize RTC and set the Time and Date
+  //  */
+  // sTime.Hours = 15;
+  // sTime.Minutes = 40;
+  // sTime.Seconds = 0;
+  // sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+  // sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+  // if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BIN) != HAL_OK) {
+  //   Error_Handler();
+  // }
+  // sDate.WeekDay = RTC_WEEKDAY_SATURDAY;
+  // sDate.Month = RTC_MONTH_FEBRUARY;
+  // sDate.Date = 7;
+  // sDate.Year = 26;
 
-  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
+  // if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK) {
+  //   Error_Handler();
+  // }
+  // /* USER CODE BEGIN RTC_Init 2 */
 
-  /* USER CODE END RTC_Init 2 */
+  // /* USER CODE END RTC_Init 2 */
 }
 
 /**
