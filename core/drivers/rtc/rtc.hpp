@@ -22,7 +22,7 @@ struct RtcTime {
   uint8_t hours;
   uint8_t minutes;
   uint8_t seconds;
-  uint32_t subseconds;
+  uint32_t subseconds;  // in ms
 
   std::string toString() const {
     return std::to_string(hours) + ":" + std::to_string(minutes) + ":" + std::to_string(seconds) +
@@ -56,8 +56,8 @@ class IRtcDriver {
   virtual RtcStatus init() = 0;
 
   // set time and date on RTC
-  virtual RtcStatus setTime(const RtcTime& time) = 0;
-  virtual RtcStatus setDate(const RtcDate& date) = 0;
+  virtual RtcStatus setTime(const RtcTime& time, uint32_t backupMagicNum) = 0;
+  virtual RtcStatus setDate(const RtcDate& date, uint32_t backupMagicNum) = 0;
 
   // get current time and date from RTC
   virtual RtcTime getTime() = 0;
@@ -78,20 +78,12 @@ class Rtc {
 
   RtcStatus init() { return driver_.init(); }
 
-  RtcStatus setTime(const RtcTime& time, bool newTime) {
-    RtcStatus s = RtcStatus::OK;
-    if (newTime) {
-      s = driver_.setTime(time);
-    }
-    return s;
+  RtcStatus setTime(const RtcTime& time, uint32_t backupMagicNum) {
+    return driver_.setTime(time, backupMagicNum);
   }
 
-  RtcStatus setDate(const RtcDate& date, bool newDate) {
-    RtcStatus s = RtcStatus::OK;
-    if (newDate) {
-      s = driver_.setDate(date);
-    }
-    return s;
+  RtcStatus setDate(const RtcDate& date, uint32_t backupMagicNum) {
+    return driver_.setDate(date, backupMagicNum);
   }
 
   RtcTime getTime() { return driver_.getTime(); }

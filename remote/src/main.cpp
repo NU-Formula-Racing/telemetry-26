@@ -19,8 +19,6 @@
 // write to CAN in task
 // write CAN driver, make PR
 // read from SD, less of a priority
-// read RTC
-// write RTC driver
 // write app to log
 
 // not needed for EI MVP:
@@ -36,7 +34,6 @@
 extern "C" void BspInit(void);
 // get STM HAL peripheral handlers
 // extern SPI_HandleTypeDef hspi2;
-// extern "C" RTC_HandleTypeDef hrtc;
 
 class PrintJob : public tasks::IJob {
  public:
@@ -153,26 +150,23 @@ class RtcReadJob : public tasks::IJob {
   RtcReadJob& operator=(RtcReadJob&&) = delete;
 
   void init() override {
-    // HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x2345);  // writing to backup register, can check
-    // this to verify RTC is setup in an init to avoid re writing time on every reset
     rtc_.init();
-    rtc::RtcDate d{rtc::RtcWeekday::SATURDAY, 2, 7, 26};
-    // need to do the shadow register thing i think
-    rtc_.setDate(d, false);
-    rtc::RtcTime t{11, 40, 0, 0};
-    rtc_.setTime(t, false);
+    rtc::RtcDate d;
+    d.month = 2;
+    d.day = 8;
+    d.year = 26;
+    d.weekday = rtc::RtcWeekday::SUNDAY;
+    rtc_.setDate(d, 0x0001);
+
+    rtc::RtcTime t;
+    t.hours = 16;
+    t.minutes = 59;
+    t.seconds = 0;
+    t.subseconds = 0;
+    rtc_.setTime(t, 0x0001);
   }
 
   void run() override {
-    //  HAL_RTC_GetTime(&hrtc, &sTime_, RTC_FORMAT_BIN);
-    //  HAL_RTC_GetDate(&hrtc, &sDate_, RTC_FORMAT_BIN);
-
-    //  const auto timeStr = "RTC Time: " + std::to_string(sTime_.Hours) + ":" +
-    //                       std::to_string(sTime_.Minutes) + ":" + std::to_string(sTime_.Seconds) +
-    //                       ":" + std::to_string(sTime_.SubSeconds);
-    //  const auto dateStr = "RTC Date: " + std::to_string(sDate_.Month) + "/" +
-    //                       std::to_string(sDate_.Date) + "/" + std::to_string(sDate_.Year);
-
     const rtc::RtcTime time = rtc_.getTime();
     const rtc::RtcDate date = rtc_.getDate();
 
@@ -183,8 +177,6 @@ class RtcReadJob : public tasks::IJob {
 
  private:
   rtc::Rtc& rtc_;
-  // RTC_TimeTypeDef sTime_;
-  // RTC_DateTypeDef sDate_;
 };
 
 int main() {
@@ -236,7 +228,6 @@ int main() {
       tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 5000, sdSyncJob});
 
   static RtcReadJob rtcReadJob(*ctx.rtc);
-  // static RtcReadJob rtcReadJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcReadTask(
       tasks::TaskConfig{"RtcReadTask", tasks::TaskPriority::STANDARD, 300, rtcReadJob});
 
