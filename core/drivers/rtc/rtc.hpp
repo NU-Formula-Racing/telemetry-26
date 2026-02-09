@@ -64,7 +64,7 @@ class IRtcDriver {
   virtual RtcDate getDate() = 0;
 };
 
-// TODO: possibly move init stuff from stm main.c to here, alarm/interrupt
+// TODO: alarm/interrupt
 class Rtc {
  public:
   Rtc(IRtcDriver& driver) : driver_(driver) {}

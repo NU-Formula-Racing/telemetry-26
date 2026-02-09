@@ -22,6 +22,7 @@
 // write app to log
 
 // not needed for EI MVP:
+// hardware timer instead of RTC for more accurate logging timestamps
 // send lora
 // receive lora
 // write lora driver
@@ -48,11 +49,7 @@ class PrintJob : public tasks::IJob {
 
   void init() override { DEBUG_OUT("PrintJob", GREEN, "PrintJob initialized\r\n"); }
 
-  void run() override {
-    DEBUG_OUT("PrintJob", GREEN, "printJob\r\n");
-    HAL_Delay(2);
-    DEBUG_OUT("PrintJob", GREEN, "printJob 2\r\n");
-  }
+  void run() override { DEBUG_OUT("PrintJob", GREEN, "printJob\r\n"); }
 };
 
 class BlinkJob : public tasks::IJob {
@@ -72,8 +69,6 @@ class BlinkJob : public tasks::IJob {
 
   void run() override {
     DEBUG_OUT("blinkJob", MAGENTA, "blinkJob\r\n");
-    HAL_Delay(2);
-    DEBUG_OUT("blinkJob", MAGENTA, "blinkJob 2\r\n");
     HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
   }
 };
@@ -179,6 +174,64 @@ class RtcReadJob : public tasks::IJob {
   rtc::Rtc& rtc_;
 };
 
+class RtcWriteToSdJob : public tasks::IJob {
+ public:
+  RtcWriteToSdJob(rtc::Rtc& rtc, sd::SdCard& sdCard) : rtc_(rtc), sdCard_(sdCard) {}
+  ~RtcWriteToSdJob() override = default;
+
+  // delete copy and move
+  RtcWriteToSdJob(const RtcWriteToSdJob&) = delete;
+  RtcWriteToSdJob& operator=(const RtcWriteToSdJob&) = delete;
+  RtcWriteToSdJob(RtcWriteToSdJob&&) = delete;
+  RtcWriteToSdJob& operator=(RtcWriteToSdJob&&) = delete;
+
+  void init() override {
+    // setup sd card
+    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
+    dirname_ = "rtctest";
+    filename_ = "rtctest/rtc0002.nfr";
+    sdCard_.init();
+    sdCard_.mkdir(dirname_);
+    sdCard_.openFile(filename_, mode);
+
+    // setup rtc
+    rtc_.init();
+    rtc::RtcDate d;
+    d.month = 2;
+    d.day = 8;
+    d.year = 26;
+    d.weekday = rtc::RtcWeekday::SUNDAY;
+    rtc_.setDate(d, 0x0001);
+
+    rtc::RtcTime t;
+    t.hours = 16;
+    t.minutes = 59;
+    t.seconds = 0;
+    t.subseconds = 0;
+    rtc_.setTime(t, 0x0001);
+  }
+
+  void run() override {
+    const rtc::RtcTime time = rtc_.getTime();
+    const rtc::RtcDate date = rtc_.getDate();
+
+    const std::string line =
+        "Current time: " + time.toString() + ", Current date: " + date.toString() + "\r\n";
+
+    sdCard_.write(
+        std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
+
+    // DEBUG_OUT("RtcWriteToSdJob", YELLOW, "Wrote current RTC time ", time.toString().c_str(),
+    //           " and date ", date.toString().c_str(), " to SD card\r\n");
+  }
+
+ private:
+  rtc::Rtc& rtc_;
+  sd::SdCard& sdCard_;
+  std::string dirname_;
+  std::string filename_;
+};
+
 int main() {
   BspInit();
 
@@ -190,12 +243,8 @@ int main() {
   // instantiate drivers & interfaces STATICALLY
   static sd::Stm32SdDriver sdDriver;
   static sd::SdCard sd(sdDriver);
-  // static rtc::Stm32RtcDriver rtcDriver(hrtc);
   static rtc::Stm32RtcDriver rtcDriver;
   static rtc::Rtc rtc(rtcDriver);
-  // pass in HAL dependencies
-  // static StmLora loraDriver(&hspi2);
-  // static StmUsb usbDriver;
 
   // create and populate context
   static resources::Context ctx;
@@ -219,24 +268,29 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> printTask(
       tasks::TaskConfig{"PrintTask", tasks::TaskPriority::LOW, 2500, printJob});
 
-  static SdWriteJob sdWriteJob(*ctx.sd);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
-      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 1000, sdWriteJob});
+  static RtcWriteToSdJob rtcWriteToSdJob(*ctx.rtc, *ctx.sd);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcWriteToSdTask(
+      tasks::TaskConfig{"RtcWriteToSdTask", tasks::TaskPriority::STANDARD, 10, rtcWriteToSdJob});
+
+  // static SdWriteJob sdWriteJob(*ctx.sd);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
+  //     tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 1000, sdWriteJob});
 
   static SdPeriodicSyncJob sdSyncJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
-      tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 5000, sdSyncJob});
+      tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
 
-  static RtcReadJob rtcReadJob(*ctx.rtc);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcReadTask(
-      tasks::TaskConfig{"RtcReadTask", tasks::TaskPriority::STANDARD, 300, rtcReadJob});
+  // static RtcReadJob rtcReadJob(*ctx.rtc);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcReadTask(
+  //     tasks::TaskConfig{"RtcReadTask", tasks::TaskPriority::STANDARD, 300, rtcReadJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(printTask));
-  taskMan.addTask(std::move(sdWriteTask));
+  taskMan.addTask(std::move(rtcWriteToSdTask));
+  // taskMan.addTask(std::move(sdWriteTask));
   taskMan.addTask(std::move(sdPeriodicSyncTask));
-  taskMan.addTask(std::move(rtcReadTask));
+  // taskMan.addTask(std::move(rtcReadTask));
   taskMan.startAllTasks();
   vTaskStartScheduler();
 
