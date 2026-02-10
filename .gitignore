@@ -3,3 +3,5 @@ remote/stm-build/
 base-station/native-build/
 remote/native-build/
 .DS_Store
+.vscode/
+.clangd

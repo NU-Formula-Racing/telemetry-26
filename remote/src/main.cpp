@@ -4,7 +4,6 @@
 
 #include <cstring>
 
-#include "app/app.hpp"
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd.hpp"

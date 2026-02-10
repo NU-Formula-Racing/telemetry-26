@@ -51,11 +51,11 @@ class ISdDriver {
 };
 
 // SD manager class
-// TODO: read, statuses, directories (ie. new directory for each drive day), automatically correctly
-// increment file names
+// TODO: read, statuses
 class SdCard {
  public:
   SdCard(ISdDriver& driver) : driver_(driver) {};
+  ~SdCard() = default;
 
   // delete copy and move
   SdCard(const SdCard&) = delete;

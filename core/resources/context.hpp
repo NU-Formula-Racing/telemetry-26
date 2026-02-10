@@ -1,7 +1,6 @@
 #pragma once
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/sd/sd.hpp"
-#include "drivers/sd/sd_stm32.hpp"
 #include "tasks/task.hpp"
 
 namespace resources {

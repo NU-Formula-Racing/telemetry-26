@@ -1,4 +1,3 @@
-add_subdirectory(interfaces)
 add_subdirectory(tasks)
 add_subdirectory(resources)
 add_subdirectory(utils)
