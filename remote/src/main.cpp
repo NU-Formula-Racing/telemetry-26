@@ -93,26 +93,21 @@ class CanTxJob : public tasks::IJob {
 
   void init() override {
     canfilterconfig_.FilterActivation = CAN_FILTER_ENABLE;
-    canfilterconfig_.FilterBank = 0;                           // Start with Bank 0
-    canfilterconfig_.FilterFIFOAssignment = CAN_FILTER_FIFO0;  // Route to FIFO 0
+    canfilterconfig_.FilterBank = 0;
+    canfilterconfig_.FilterFIFOAssignment = CAN_FILTER_FIFO0;
 
-    // ID doesn't matter since Mask is 0, but usually set to 0 for cleanliness
     canfilterconfig_.FilterIdHigh = 0;
     canfilterconfig_.FilterIdLow = 0;
 
-    // MASK = 0 means "Accept Everything"
     canfilterconfig_.FilterMaskIdHigh = 0;
     canfilterconfig_.FilterMaskIdLow = 0;
 
     canfilterconfig_.FilterMode = CAN_FILTERMODE_IDMASK;
-    canfilterconfig_.FilterScale = CAN_FILTERSCALE_32BIT;  // 32-bit handles Std and Ext IDs
+    canfilterconfig_.FilterScale = CAN_FILTERSCALE_32BIT;
 
-    // SlaveStartFilterBank controls the split between CAN1 and CAN2.
-    // Even if you only use CAN1, the hardware shares the 28 filter banks.
-    // Setting it to 14 assigns Banks 0-13 to CAN1 and 14-27 to CAN2.
     canfilterconfig_.SlaveStartFilterBank = 14;
 
-    auto status = HAL_CAN_ConfigFilter(&hcan1, &canfilterconfig_);
+    auto status = HAL_CAN_ConfigFilter(&hcan_, &canfilterconfig_);
     if (status != HAL_OK) {
       while (true) {
         ERROR("CanTxJob", "Failed to configure CAN filter, status: ", std::to_string(status),
@@ -128,6 +123,8 @@ class CanTxJob : public tasks::IJob {
 
     txData_.at(0) = 50;
     txData_.at(1) = counter_;
+
+    HAL_CAN_ActivateNotification(&hcan_, CAN_IT_RX_FIFO0_MSG_PENDING);
 
     HAL_CAN_Start(&hcan_);
   }
@@ -155,7 +152,48 @@ class CanTxJob : public tasks::IJob {
   uint8_t counter_ = 0;
 };
 
-class CanRxJob : public tasks::IJob {};
+CAN_RxHeaderTypeDef rxHeader;
+std::array<uint8_t, 8> rxData;
+
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef* hcan) {
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData.data()) != HAL_OK) {
+    ERROR("CAN Rx Callback", "Failed to receive CAN message\r\n");
+  } else {
+    DEBUG_OUT("CAN Rx Callback", YELLOW, "Received CAN message with ID ",
+              std::to_string(rxHeader.StdId), " and data ", std::to_string(rxData.at(0)), " ",
+              std::to_string(rxData.at(1)), "\r\n");
+  }
+}
+
+// class CanRxJob : public tasks::IJob {
+//  public:
+//   CanRxJob(CAN_HandleTypeDef& hcan) : hcan_(hcan) {};
+//   ~CanRxJob() override = default;
+//
+//   // delete copy and move
+//   CanRxJob(const CanRxJob&) = delete;
+//   CanRxJob& operator=(const CanRxJob&) = delete;
+//   CanRxJob(CanRxJob&&) = delete;
+//   CanRxJob& operator=(CanRxJob&&) = delete;
+//
+//   void init() override {}
+//
+//   void run() override {
+//     CAN_RxHeaderTypeDef rxHeader;
+//     std::array<uint8_t, 8> rxData;
+//     auto status = HAL_CAN_GetRxMessage(&hcan_, CAN_RX_FIFO0, &rxHeader, rxData.data());
+//
+//     if (status == HAL_OK) {
+//       DEBUG_OUT("CanRxJob", GREEN, "Received CAN message with ID ",
+//       std::to_string(rxHeader.StdId),
+//                 " and data ", std::to_string(rxData.at(0)), " ", std::to_string(rxData.at(1)),
+//                 "\r\n");
+//     }
+//   }
+//
+//  private:
+//   CAN_HandleTypeDef& hcan_;
+// };
 
 int main() {
   BspInit();
