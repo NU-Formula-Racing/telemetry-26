@@ -4,6 +4,7 @@
 
 #include <cstring>
 
+#include "app/logger.hpp"
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd.hpp"
@@ -254,11 +255,10 @@ int main() {
   ctx.sd = &sd;
   ctx.rtc = &rtc;
 
-  // init remote app: should add tasks, configure app settings
-  // pass in context, only store specific resources needed in app private members, dont store the
-  // entire registry
-  // can also setup tasks in ctor of app, tasks can be initialized in private variable section
+  // instantiate apps
+  static logger::Logger logger(sd, rtc);
 
+  // setup tasks
   static BlinkJob blinkJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
@@ -267,9 +267,13 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> printTask(
       tasks::TaskConfig{"PrintTask", tasks::TaskPriority::LOW, 2500, printJob});
 
-  static RtcWriteToSdJob rtcWriteToSdJob(*ctx.rtc, *ctx.sd);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcWriteToSdTask(
-      tasks::TaskConfig{"RtcWriteToSdTask", tasks::TaskPriority::STANDARD, 10, rtcWriteToSdJob});
+  static logger::LoggerJob loggerJob(logger);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> loggerTask(
+      tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::STANDARD, 10, loggerJob});
+
+  // static RtcWriteToSdJob rtcWriteToSdJob(*ctx.rtc, *ctx.sd);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcWriteToSdTask(
+  //     tasks::TaskConfig{"RtcWriteToSdTask", tasks::TaskPriority::STANDARD, 10, rtcWriteToSdJob});
 
   // static SdWriteJob sdWriteJob(*ctx.sd);
   // static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
@@ -286,8 +290,9 @@ int main() {
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(printTask));
-  taskMan.addTask(std::move(rtcWriteToSdTask));
+  // taskMan.addTask(std::move(rtcWriteToSdTask));
   // taskMan.addTask(std::move(sdWriteTask));
+  taskMan.addTask(std::move(loggerTask));
   taskMan.addTask(std::move(sdPeriodicSyncTask));
   // taskMan.addTask(std::move(rtcReadTask));
   taskMan.startAllTasks();

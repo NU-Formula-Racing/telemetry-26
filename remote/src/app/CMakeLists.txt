@@ -7,6 +7,8 @@ add_library(remote_app
 
 target_link_libraries(remote_app PRIVATE 
                       core_drivers
+                      core_sd
+                      core_rtc
 )
 
 # target_include_directories(remote_bsp PUBLIC 
