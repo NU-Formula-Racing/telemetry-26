@@ -2,24 +2,21 @@
 
 #include <FreeRTOS.h>
 
+#include <cstdint>
 #include <cstring>
 
 #include "app/logger.hpp"
-#include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
-#include "drivers/sd/sd.hpp"
 #include "drivers/sd/sd_stm32.hpp"
 #include "resources/context.hpp"
+#include "stm32f4xx_hal_can.h"
 #include "tasks/task.hpp"
-#include "usb_device.h"
 #include "utils/utils.hpp"
 
 // TODO: //
 // read from CAN in ISR, task
 // write to CAN in task
 // write CAN driver, make PR
-// read from SD, less of a priority
-// write app to log
 
 // not needed for EI MVP:
 // hardware timer instead of RTC for more accurate logging timestamps
@@ -35,22 +32,7 @@
 extern "C" void BspInit(void);
 // get STM HAL peripheral handlers
 // extern SPI_HandleTypeDef hspi2;
-
-class PrintJob : public tasks::IJob {
- public:
-  PrintJob() = default;
-  ~PrintJob() override = default;
-
-  // delete copy and move
-  PrintJob(const PrintJob&) = delete;
-  PrintJob& operator=(const PrintJob&) = delete;
-  PrintJob(PrintJob&&) = delete;
-  PrintJob& operator=(PrintJob&&) = delete;
-
-  void init() override { DEBUG_OUT("PrintJob", GREEN, "PrintJob initialized\r\n"); }
-
-  void run() override { DEBUG_OUT("PrintJob", GREEN, "printJob\r\n"); }
-};
+extern CAN_HandleTypeDef hcan1;
 
 class BlinkJob : public tasks::IJob {
  public:
@@ -71,44 +53,6 @@ class BlinkJob : public tasks::IJob {
     DEBUG_OUT("blinkJob", MAGENTA, "blinkJob\r\n");
     HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
   }
-};
-
-class SdWriteJob : public tasks::IJob {
- public:
-  SdWriteJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
-  ~SdWriteJob() override = default;
-
-  // delete copy and move
-  SdWriteJob(const SdWriteJob&) = delete;
-  SdWriteJob& operator=(const SdWriteJob&) = delete;
-  SdWriteJob(SdWriteJob&&) = delete;
-  SdWriteJob& operator=(SdWriteJob&&) = delete;
-
-  void init() override {
-    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
-    dirname_ = "testdir";
-    filename_ = "testdir/test.nfr";
-    sdCard_.init();
-    sdCard_.mkdir(dirname_);
-    sdCard_.openFile(filename_, mode);
-  }
-
-  void run() override {
-    const std::string line = "hi nfr\r\n";
-
-    sdCard_.write(
-        std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
-    sdCard_.write(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&num), sizeof(num)));
-    num++;
-
-    DEBUG_OUT("SdWriteJob", CYAN, "Wrote a line to SD file ", filename_, "\r\n");
-  }
-
- private:
-  sd::SdCard& sdCard_;
-  std::string dirname_;
-  std::string filename_;
-  uint64_t num = 0;
 };
 
 class SdPeriodicSyncJob : public tasks::IJob {
@@ -133,104 +77,85 @@ class SdPeriodicSyncJob : public tasks::IJob {
   sd::SdCard& sdCard_;
 };
 
-class RtcReadJob : public tasks::IJob {
+// task to periodically read from CAN
+
+// task to periodically write to CAN
+class CanTxJob : public tasks::IJob {
  public:
-  RtcReadJob(rtc::Rtc& rtc) : rtc_(rtc) {}
-  ~RtcReadJob() override = default;
+  CanTxJob(CAN_HandleTypeDef& hcan) : hcan_(hcan) {};
+  ~CanTxJob() override = default;
 
   // delete copy and move
-  RtcReadJob(const RtcReadJob&) = delete;
-  RtcReadJob& operator=(const RtcReadJob&) = delete;
-  RtcReadJob(RtcReadJob&&) = delete;
-  RtcReadJob& operator=(RtcReadJob&&) = delete;
+  CanTxJob(const CanTxJob&) = delete;
+  CanTxJob& operator=(const CanTxJob&) = delete;
+  CanTxJob(CanTxJob&&) = delete;
+  CanTxJob& operator=(CanTxJob&&) = delete;
 
   void init() override {
-    rtc_.init();
-    rtc::RtcDate d;
-    d.month = 2;
-    d.day = 8;
-    d.year = 26;
-    d.weekday = rtc::RtcWeekday::SUNDAY;
-    rtc_.setDate(d, 0x0001);
+    canfilterconfig_.FilterActivation = CAN_FILTER_ENABLE;
+    canfilterconfig_.FilterBank = 0;                           // Start with Bank 0
+    canfilterconfig_.FilterFIFOAssignment = CAN_FILTER_FIFO0;  // Route to FIFO 0
 
-    rtc::RtcTime t;
-    t.hours = 16;
-    t.minutes = 59;
-    t.seconds = 0;
-    t.subseconds = 0;
-    rtc_.setTime(t, 0x0001);
+    // ID doesn't matter since Mask is 0, but usually set to 0 for cleanliness
+    canfilterconfig_.FilterIdHigh = 0;
+    canfilterconfig_.FilterIdLow = 0;
+
+    // MASK = 0 means "Accept Everything"
+    canfilterconfig_.FilterMaskIdHigh = 0;
+    canfilterconfig_.FilterMaskIdLow = 0;
+
+    canfilterconfig_.FilterMode = CAN_FILTERMODE_IDMASK;
+    canfilterconfig_.FilterScale = CAN_FILTERSCALE_32BIT;  // 32-bit handles Std and Ext IDs
+
+    // SlaveStartFilterBank controls the split between CAN1 and CAN2.
+    // Even if you only use CAN1, the hardware shares the 28 filter banks.
+    // Setting it to 14 assigns Banks 0-13 to CAN1 and 14-27 to CAN2.
+    canfilterconfig_.SlaveStartFilterBank = 14;
+
+    auto status = HAL_CAN_ConfigFilter(&hcan1, &canfilterconfig_);
+    if (status != HAL_OK) {
+      while (true) {
+        ERROR("CanTxJob", "Failed to configure CAN filter, status: ", std::to_string(status),
+              "\r\n");
+        HAL_Delay(100);
+      }
+    }
+
+    txHeader_.IDE = CAN_ID_STD;
+    txHeader_.StdId = 0x520;
+    txHeader_.RTR = CAN_RTR_DATA;
+    txHeader_.DLC = 2;
+
+    txData_.at(0) = 50;
+    txData_.at(1) = counter_;
+
+    HAL_CAN_Start(&hcan_);
   }
 
   void run() override {
-    const rtc::RtcTime time = rtc_.getTime();
-    const rtc::RtcDate date = rtc_.getDate();
+    auto status = HAL_CAN_AddTxMessage(&hcan_, &txHeader_, txData_.data(), &txMailbox_);
 
-    DEBUG_OUT("RtcReadJob", BLUE, time.toString().c_str(), "\r\n");
-    HAL_Delay(2);
-    DEBUG_OUT("RtcReadJob", BLUE, date.toString().c_str(), "\r\n");
+    if (status != HAL_OK) {
+      ERROR("CanTxJob", "Failed to send CAN message, status: ", std::to_string(status), "\r\n");
+    } else {
+      DEBUG_OUT("CanTxJob", BLUE, "Sent CAN message with ID ", std::to_string(txHeader_.StdId),
+                " and data ", std::to_string(txData_.at(0)), " ", std::to_string(txData_.at(1)),
+                "\r\n");
+    }
+    counter_++;
+    txData_.at(1) = counter_;
   }
 
  private:
-  rtc::Rtc& rtc_;
+  CAN_FilterTypeDef canfilterconfig_;
+  CAN_HandleTypeDef& hcan_;
+  CAN_TxHeaderTypeDef txHeader_;
+  std::array<uint8_t, 8> txData_;
+  uint32_t txMailbox_;
+  uint8_t counter_ = 0;
 };
 
-class RtcWriteToSdJob : public tasks::IJob {
- public:
-  RtcWriteToSdJob(rtc::Rtc& rtc, sd::SdCard& sdCard) : rtc_(rtc), sdCard_(sdCard) {}
-  ~RtcWriteToSdJob() override = default;
-
-  // delete copy and move
-  RtcWriteToSdJob(const RtcWriteToSdJob&) = delete;
-  RtcWriteToSdJob& operator=(const RtcWriteToSdJob&) = delete;
-  RtcWriteToSdJob(RtcWriteToSdJob&&) = delete;
-  RtcWriteToSdJob& operator=(RtcWriteToSdJob&&) = delete;
-
-  void init() override {
-    // setup sd card
-    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
-    dirname_ = "rtctest";
-    filename_ = "rtctest/rtc0002.nfr";
-    sdCard_.init();
-    sdCard_.mkdir(dirname_);
-    sdCard_.openFile(filename_, mode);
-
-    // setup rtc
-    rtc_.init();
-    rtc::RtcDate d;
-    d.month = 2;
-    d.day = 8;
-    d.year = 26;
-    d.weekday = rtc::RtcWeekday::SUNDAY;
-    rtc_.setDate(d, 0x0001);
-
-    rtc::RtcTime t;
-    t.hours = 16;
-    t.minutes = 59;
-    t.seconds = 0;
-    t.subseconds = 0;
-    rtc_.setTime(t, 0x0001);
-  }
-
-  void run() override {
-    const rtc::RtcTime time = rtc_.getTime();
-    const rtc::RtcDate date = rtc_.getDate();
-
-    const std::string line =
-        "Current time: " + time.toString() + ", Current date: " + date.toString() + "\r\n";
-
-    sdCard_.write(
-        std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
-
-    // DEBUG_OUT("RtcWriteToSdJob", YELLOW, "Wrote current RTC time ", time.toString().c_str(),
-    //           " and date ", date.toString().c_str(), " to SD card\r\n");
-  }
-
- private:
-  rtc::Rtc& rtc_;
-  sd::SdCard& sdCard_;
-  std::string dirname_;
-  std::string filename_;
-};
+class CanRxJob : public tasks::IJob {};
 
 int main() {
   BspInit();
@@ -263,38 +188,23 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
-  static PrintJob printJob;
-  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> printTask(
-      tasks::TaskConfig{"PrintTask", tasks::TaskPriority::LOW, 2500, printJob});
-
   static logger::LoggerJob loggerJob(logger);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> loggerTask(
       tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::STANDARD, 10, loggerJob});
-
-  // static RtcWriteToSdJob rtcWriteToSdJob(*ctx.rtc, *ctx.sd);
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcWriteToSdTask(
-  //     tasks::TaskConfig{"RtcWriteToSdTask", tasks::TaskPriority::STANDARD, 10, rtcWriteToSdJob});
-
-  // static SdWriteJob sdWriteJob(*ctx.sd);
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdWriteTask(
-  //     tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 1000, sdWriteJob});
 
   static SdPeriodicSyncJob sdSyncJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
       tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
 
-  // static RtcReadJob rtcReadJob(*ctx.rtc);
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcReadTask(
-  //     tasks::TaskConfig{"RtcReadTask", tasks::TaskPriority::STANDARD, 300, rtcReadJob});
+  static CanTxJob canTxJob(hcan1);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> canTxTask(
+      tasks::TaskConfig{"CanTxTask", tasks::TaskPriority::STANDARD, 500, canTxJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  taskMan.addTask(std::move(printTask));
-  // taskMan.addTask(std::move(rtcWriteToSdTask));
-  // taskMan.addTask(std::move(sdWriteTask));
   taskMan.addTask(std::move(loggerTask));
   taskMan.addTask(std::move(sdPeriodicSyncTask));
-  // taskMan.addTask(std::move(rtcReadTask));
+  taskMan.addTask(std::move(canTxTask));
   taskMan.startAllTasks();
   vTaskStartScheduler();
 
