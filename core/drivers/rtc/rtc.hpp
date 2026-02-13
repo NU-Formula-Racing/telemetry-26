@@ -18,6 +18,7 @@ enum class RtcWeekday : uint8_t {
   SUNDAY = 0x07
 };
 
+#pragma pack(push, 1)
 struct RtcTime {
   uint8_t hours;
   uint8_t minutes;
@@ -40,6 +41,7 @@ struct RtcDate {
     return std::to_string(month) + "/" + std::to_string(day) + "/" + std::to_string(year);
   }
 };
+#pragma pack(pop)
 
 class IRtcDriver {
  public:

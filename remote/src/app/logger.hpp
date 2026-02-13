@@ -39,8 +39,8 @@ class Logger {
     // setup sd card
     uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::CREATE_ALWAYS;
     sdCard_.init();
-    sdCard_.mkdir("cantest");
-    sdCard_.openFile("cantest/rtcfix01.nfr", mode);
+    sdCard_.mkdir("andrew");
+    sdCard_.openFile("andrew/4_msg.nfr", mode);
 
     // setup rtc
     rtc_.init();
