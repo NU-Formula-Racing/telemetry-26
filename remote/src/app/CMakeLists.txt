@@ -3,12 +3,14 @@ add_library(remote_app
             # app.hpp
             # app.cpp
             logger.hpp
+            # heartbeat.hpp
 )
 
 target_link_libraries(remote_app PRIVATE 
                       core_drivers
                       core_sd
                       core_rtc
+                      core_can
 )
 
 # target_include_directories(remote_bsp PUBLIC 

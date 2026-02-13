@@ -1,8 +1,8 @@
 #pragma once
 
+#include "drivers/can/can.hpp"
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/sd/sd.hpp"
-// #include "tasks/tasks.hpp"
 #include "tasks/job.hpp"
 #include "utils/utils.hpp"
 
@@ -10,10 +10,8 @@ namespace logger {
 
 #pragma pack(push, 1)
 struct LogFrame {
-  rtc::RtcTime time;
-  uint32_t id;  // 12 bit standard ID or 29 bit extended ID
-  uint8_t len;  // data length in bits
-  std::array<uint8_t, 8> data;
+  can::CanFrame canFrame;
+  // TODO: GPS
 };
 
 struct LogHeader {
@@ -23,9 +21,13 @@ struct LogHeader {
 };
 #pragma pack(pop)
 
+// TODO: detect that its a new day and make a new directory if so
+//      make new file with incremented name in format log00000.nfr, log00001.nfr, etc. need to store
+//      this in nvm somehow
 class Logger {
  public:
-  Logger(sd::SdCard& sdCard, rtc::Rtc& rtc) : sdCard_(sdCard), rtc_(rtc) {}
+  Logger(sd::SdCard& sdCard, rtc::Rtc& rtc, can::CanBus& canBus)
+      : sdCard_(sdCard), rtc_(rtc), canBus_(canBus) {}
   ~Logger() = default;
 
   Logger(const Logger&) = delete;
@@ -34,10 +36,11 @@ class Logger {
   Logger& operator=(Logger&&) = delete;
 
   void setup() {
+    // setup sd card
     uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
     sdCard_.init();
-    sdCard_.mkdir("rtctest");
-    sdCard_.openFile("rtctest/rtc0004.nfr", mode);
+    sdCard_.mkdir("cantest");
+    sdCard_.openFile("cantest/log0001.nfr", mode);
 
     // setup rtc
     rtc_.init();
@@ -55,6 +58,9 @@ class Logger {
     t.subseconds = 0;
     rtc_.setTime(t, 0x0001);
 
+    // setup can bus
+    canBus_.init();
+
     // log header
     LogHeader header;
     header.version = version_;
@@ -64,7 +70,7 @@ class Logger {
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&header), sizeof(LogHeader)));
   }
 
-  void log() {
+  void simpleLog() {
     const rtc::RtcTime time = rtc_.getTime();
     const rtc::RtcDate date = rtc_.getDate();
 
@@ -75,9 +81,30 @@ class Logger {
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
   }
 
+  void logCanFrame(const LogFrame& logFrame) {
+    DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
+              " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
+              std::to_string(logFrame.canFrame.timestamp), "\r\n");
+
+    sdCard_.write(
+        std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&logFrame), sizeof(LogFrame)));
+  }
+
+  void canLog() {
+    can::CanFrame frame;
+    while (canBus_.receive(frame, 0)) {
+      LogFrame logFrame;
+      logFrame.canFrame = frame;
+
+      logCanFrame(logFrame);
+    }
+  }
+
  private:
   sd::SdCard& sdCard_;
   rtc::Rtc& rtc_;
+  can::CanBus& canBus_;
+
   const std::array<uint8_t, 9> version_ = {'N', 'F', 'R', '2', '6', '0', '0', '0', '\n'};
 };
 
@@ -94,7 +121,7 @@ class LoggerJob : public tasks::IJob {
 
   void init() override { logger_.setup(); }
 
-  void run() override { logger_.log(); }
+  void run() override { logger_.canLog(); }
 
  private:
   Logger& logger_;

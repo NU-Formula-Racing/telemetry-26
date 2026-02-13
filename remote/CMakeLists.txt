@@ -61,6 +61,7 @@ endif()
 add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 add_subdirectory(src/app)
 add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
+add_subdirectory(../third-party/nfrcanlib ${CMAKE_BINARY_DIR}/nfrcanlib)
 
 if(CMAKE_CROSSCOMPILING)
     # build .elf for target
@@ -74,6 +75,7 @@ if(CMAKE_CROSSCOMPILING)
                                ${CMAKE_CURRENT_SOURCE_DIR}/bsp/FATFS
                                ${CMAKE_CURRENT_SOURCE_DIR}/bsp
                                ${CMAKE_CURRENT_SOURCE_DIR}/../core
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../third-party/nfrcanlib/include
                               )
  
     target_link_libraries(remote.elf PRIVATE
@@ -84,6 +86,7 @@ if(CMAKE_CROSSCOMPILING)
                             core_resources
                             freertos_kernel
                             freertos_config
+                            nfr_canlib
                          )
 
     add_subdirectory(../third-party/freertos ${CMAKE_BINARY_DIR}/freertos)

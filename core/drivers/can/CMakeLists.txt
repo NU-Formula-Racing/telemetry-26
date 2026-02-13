@@ -1,7 +1,7 @@
 add_library(core_can
             # list all can files
             can.hpp
-            can.cpp
+            can_stm32.hpp
             )
 
 target_link_libraries(core_can PRIVATE platform_bsp)
