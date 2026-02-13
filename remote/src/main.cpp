@@ -76,6 +76,31 @@ class SdPeriodicSyncJob : public tasks::IJob {
   sd::SdCard& sdCard_;
 };
 
+class RtcPrintJob : public tasks::IJob {
+ public:
+  RtcPrintJob(rtc::Rtc& rtc) : rtc_(rtc) {}
+  ~RtcPrintJob() override = default;
+
+  // delete copy and move
+  RtcPrintJob(const RtcPrintJob&) = delete;
+  RtcPrintJob& operator=(const RtcPrintJob&) = delete;
+  RtcPrintJob(RtcPrintJob&&) = delete;
+  RtcPrintJob& operator=(RtcPrintJob&&) = delete;
+
+  void init() override {}
+
+  void run() override {
+    const rtc::RtcTime time = rtc_.getTime();
+    const rtc::RtcDate date = rtc_.getDate();
+
+    DEBUG_OUT("RtcPrintJob", YELLOW, "Current time: ", time.toString().c_str(),
+              ", Current date: ", date.toString().c_str(), "\r\n");
+  }
+
+ private:
+  rtc::Rtc& rtc_;
+};
+
 int main() {
   BspInit();
 
@@ -119,10 +144,15 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
       tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
 
+  static RtcPrintJob rtcPrintJob(*ctx.rtc);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
+      tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
+
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(loggerTask));
   taskMan.addTask(std::move(sdPeriodicSyncTask));
+  taskMan.addTask(std::move(rtcPrintTask));
 
   taskMan.startAllTasks();
   vTaskStartScheduler();

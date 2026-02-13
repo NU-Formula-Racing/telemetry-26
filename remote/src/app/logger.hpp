@@ -37,26 +37,26 @@ class Logger {
 
   void setup() {
     // setup sd card
-    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::OPEN_ALWAYS;
+    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::CREATE_ALWAYS;
     sdCard_.init();
     sdCard_.mkdir("cantest");
-    sdCard_.openFile("cantest/log0001.nfr", mode);
+    sdCard_.openFile("cantest/rtcfix01.nfr", mode);
 
     // setup rtc
     rtc_.init();
     rtc::RtcDate d;
     d.month = 2;
-    d.day = 8;
+    d.day = 13;
     d.year = 26;
-    d.weekday = rtc::RtcWeekday::SUNDAY;
-    rtc_.setDate(d, 0x0001);
+    d.weekday = rtc::RtcWeekday::FRIDAY;
+    rtc_.setDate(d, 0xAAA0);
 
     rtc::RtcTime t;
-    t.hours = 16;
-    t.minutes = 59;
+    t.hours = 2;
+    t.minutes = 30;
     t.seconds = 0;
     t.subseconds = 0;
-    rtc_.setTime(t, 0x0001);
+    rtc_.setTime(t, 0xAAA0);
 
     // setup can bus
     canBus_.init();
