@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <span>
 
+#include "Middlewares/Third_Party/FatFs/src/ff.h"
 #include "sd.hpp"
 #include "utils/utils.hpp"
 
@@ -36,7 +37,17 @@ class Stm32SdDriver : public ISdDriver {
 
   virtual SdResult mkdir(const std::string& dirname) override {
     result_ = f_mkdir(dirname.data());
-    return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
+
+    if (result_ == FR_OK || result_ == FR_EXIST) {
+      return SdResult::OK;
+    }
+    return SdResult::ERROR;
+  }
+
+  virtual bool fileExists(const std::string& filename) override {
+    FILINFO fno;
+    result_ = f_stat(filename.data(), &fno);
+    return (result_ == FR_OK);
   }
 
   virtual SdResult openFile(const std::string& filename, uint8_t mode) override {

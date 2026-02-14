@@ -22,8 +22,10 @@ struct LogHeader {
 #pragma pack(pop)
 
 // TODO: detect that its a new day and make a new directory if so
-//      make new file with incremented name in format log00000.nfr, log00001.nfr, etc. need to store
-//      this in nvm somehow
+//      make new file with incremented name in format log00000.nfr, log00001.nfr, etc.
+// need to store this in nvm somehow
+// TODO: get date/time to write to RTC to reset it from laptop using preprocessor's compile time +
+// date
 class Logger {
  public:
   Logger(sd::SdCard& sdCard, rtc::Rtc& rtc, can::CanBus& canBus)
@@ -36,12 +38,6 @@ class Logger {
   Logger& operator=(Logger&&) = delete;
 
   void setup() {
-    // setup sd card
-    uint8_t mode = sd::SdFileMode::WRITE | sd::SdFileMode::CREATE_ALWAYS;
-    sdCard_.init();
-    sdCard_.mkdir("andrew");
-    sdCard_.openFile("andrew/4_msg.nfr", mode);
-
     // setup rtc
     rtc_.init();
     rtc::RtcDate d;
@@ -57,6 +53,10 @@ class Logger {
     t.seconds = 0;
     t.subseconds = 0;
     rtc_.setTime(t, 0xAAA0);
+
+    // setup sd card
+    sdCard_.init();
+    sdCard_.openRollingLogFile(rtc_.getDate().toString());
 
     // setup can bus
     canBus_.init();

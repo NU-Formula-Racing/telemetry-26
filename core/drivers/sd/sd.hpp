@@ -37,6 +37,9 @@ class ISdDriver {
   // make a new directory
   virtual SdResult mkdir(const std::string& dirname) = 0;
 
+  // check if a file exists on the card
+  virtual bool fileExists(const std::string& filename) = 0;
+
   // open a file
   // filename must follow 8.3 format unless LFN is enabled
   virtual SdResult openFile(const std::string& filename, uint8_t mode) = 0;
@@ -75,6 +78,32 @@ class SdCard {
     return driver_.openFile(filename, mode);
   }
 
+  // open a rolling log file with incremented name in format (ie. log_0000.nfr, log_0001.nfr, etc.)
+  SdResult openRollingLogFile(const std::string& dateDir) {
+    // try to create the directory
+    if (driver_.mkdir(dateDir) == SdResult::ERROR) {
+      return SdResult::ERROR;
+    }
+
+    // find the next available log file name
+    uint32_t index = 0;
+    std::string path;
+
+    // find the next available filename
+    // limiting index to 10000, max log is log_9999.nfr
+    while (index < 10000) {
+      path = dateDir + "/" + formatFilename("log_", index, ".nfr");
+      if (!driver_.fileExists(path)) {
+        break;
+      }
+      index++;
+    }
+
+    // open the file
+    uint8_t mode = SdFileMode::WRITE | SdFileMode::CREATE_ALWAYS;
+    return driver_.openFile(path, mode);
+  }
+
   // write some raw data to the internal SD buffer
   // data is only written to the card with flushBuffer() and driver_.flush()
   // TODO: return a status
@@ -100,6 +129,15 @@ class SdCard {
   }
 
  private:
+  // helper to format filenames with incrementing index, eg. log_0001.nfr
+  std::string formatFilename(const std::string& prefix, uint32_t index, const std::string& suffix) {
+    std::string indexStr = std::to_string(index);
+    // pad with leading zeros to 4 digits
+    indexStr = std::string(4 - indexStr.length(), '0') + indexStr;
+
+    return prefix + indexStr + suffix;
+  }
+
   // send internal buffer to the card and clear it
   void flushBuffer() {
     driver_.write(std::span<const uint8_t>(internalBuffer_.data(), internalBuffer_.size()));
