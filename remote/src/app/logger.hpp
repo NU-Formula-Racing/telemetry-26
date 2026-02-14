@@ -38,6 +38,9 @@ class Logger {
   Logger& operator=(Logger&&) = delete;
 
   void setup() {
+    // give ptr to active RTC to static function for providing FATFS time metadata
+    activeRtc_ = &rtc_;
+
     // setup rtc
     rtc_.init();
     rtc::RtcDate d;
@@ -56,6 +59,7 @@ class Logger {
 
     // setup sd card
     sdCard_.init();
+    sdCard_.registerTimeProvider(provideFatTime);
     sdCard_.openRollingLogFile(rtc_.getDate().toString());
 
     // setup can bus
@@ -101,11 +105,21 @@ class Logger {
   }
 
  private:
+  static uint32_t provideFatTime() {
+    const rtc::RtcTime time = activeRtc_->getTime();
+    const rtc::RtcDate date = activeRtc_->getDate();
+
+    return sd::SdCard::packFatTime(date.year, date.month, date.day, time.hours, time.minutes,
+                                   time.seconds);
+  }
+
   sd::SdCard& sdCard_;
   rtc::Rtc& rtc_;
   can::CanBus& canBus_;
 
   const std::array<uint8_t, 9> version_ = {'N', 'F', 'R', '2', '6', '0', '0', '0', '\n'};
+
+  inline static rtc::Rtc* activeRtc_ = nullptr;
 };
 
 class LoggerJob : public tasks::IJob {

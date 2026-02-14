@@ -24,6 +24,9 @@ inline uint8_t operator|(SdFileMode a, SdFileMode b) {
   return static_cast<uint8_t>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
 }
 
+// function ptr type for providing file date/time metadata
+using TimeProviderCb = uint32_t (*)();
+
 class ISdDriver {
  public:
   virtual ~ISdDriver() = default;
@@ -49,6 +52,10 @@ class ISdDriver {
 
   // manually flush internal buffers to ensure data is written to the card
   virtual SdResult flush() = 0;
+
+  // register a callback to provide file date/time metadata for FATFS when creating
+  // files/directories
+  virtual void registerTimeProvider(TimeProviderCb cb) = 0;
 
   // TODO: error handling
 };
@@ -126,6 +133,21 @@ class SdCard {
       flushBuffer();
     }
     driver_.flush();
+  }
+
+  void registerTimeProvider(TimeProviderCb cb) { driver_.registerTimeProvider(cb); }
+
+  // helper to convert date/time to FATFS format for file metadata
+  static uint32_t packFatTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour,
+                              uint8_t minute, uint8_t second) {
+    // FATFS start year is 1980, need to convert from full year to FATFS format (0-119 representing
+    // 1980-2099).
+    // supports providing years as 2 digits (ie. 26) or 4 digits (ie. 2026)
+    uint32_t fatYear = (year >= 1980) ? (year - 1980) : (year + 2000 - 1980);
+
+    return (fatYear << 25) | (static_cast<uint32_t>(month) << 21) |
+           (static_cast<uint32_t>(day) << 16) | (static_cast<uint32_t>(hour) << 11) |
+           (static_cast<uint32_t>(minute) << 5) | (static_cast<uint32_t>(second) / 2);
   }
 
  private:

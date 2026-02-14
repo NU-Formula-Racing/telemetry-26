@@ -86,12 +86,28 @@ class Stm32SdDriver : public ISdDriver {
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
+  virtual void registerTimeProvider(TimeProviderCb cb) override { timeProvider_ = cb; }
+
+  // static helper that FATFS global C function will call
+  static uint32_t getFatTime() {
+    if (timeProvider_ != nullptr) {
+      return timeProvider_();
+    }
+    // use default time of 1/1/1980 00:00:00 if no provider registered
+    return 0;
+  }
+
  private:
   // hardware-specific members
   FATFS sdFatFs_{};
   FIL file_{};
   FRESULT result_{FR_OK};
   UINT bytesWritten_{0};
+
+  inline static TimeProviderCb timeProvider_ = nullptr;
 };
 
 }  // namespace sd
+
+// global C function called internally by FATFS every time a file is modified
+extern "C" DWORD get_fattime(void) { return sd::Stm32SdDriver::getFatTime(); }
