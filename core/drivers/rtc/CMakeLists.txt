@@ -2,6 +2,7 @@ add_library(core_rtc
             # list all rtc files
             rtc.hpp
             rtc_stm32.hpp
+            rtc_utils.hpp
             )
 
 target_link_libraries(core_rtc 

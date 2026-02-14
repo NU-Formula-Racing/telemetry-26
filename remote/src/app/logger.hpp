@@ -2,6 +2,7 @@
 
 #include "drivers/can/can.hpp"
 #include "drivers/rtc/rtc.hpp"
+#include "drivers/rtc/rtc_utils.hpp"
 #include "drivers/sd/sd.hpp"
 #include "tasks/job.hpp"
 #include "utils/utils.hpp"
@@ -21,11 +22,6 @@ struct LogHeader {
 };
 #pragma pack(pop)
 
-// TODO: detect that its a new day and make a new directory if so
-//      make new file with incremented name in format log00000.nfr, log00001.nfr, etc.
-// need to store this in nvm somehow
-// TODO: get date/time to write to RTC to reset it from laptop using preprocessor's compile time +
-// date
 class Logger {
  public:
   Logger(sd::SdCard& sdCard, rtc::Rtc& rtc, can::CanBus& canBus)
@@ -43,19 +39,10 @@ class Logger {
 
     // setup rtc
     rtc_.init();
-    rtc::RtcDate d;
-    d.month = 2;
-    d.day = 13;
-    d.year = 26;
-    d.weekday = rtc::RtcWeekday::FRIDAY;
-    rtc_.setDate(d, 0xAAA0);
-
-    rtc::RtcTime t;
-    t.hours = 2;
-    t.minutes = 30;
-    t.seconds = 0;
-    t.subseconds = 0;
-    rtc_.setTime(t, 0xAAA0);
+    constexpr rtc::RtcDate compileDate = rtc::utils::parseCompilerDate(__DATE__);
+    constexpr rtc::RtcTime compileTime = rtc::utils::parseCompilerTime(__TIME__);
+    rtc_.setDate(compileDate, 0xAAAA);
+    rtc_.setTime(compileTime, 0xAAAA);
 
     // setup sd card
     sdCard_.init();
