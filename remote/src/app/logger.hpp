@@ -128,4 +128,26 @@ class LoggerJob : public tasks::IJob {
   Logger& logger_;
 };
 
+class SdPeriodicSyncJob : public tasks::IJob {
+ public:
+  SdPeriodicSyncJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
+  ~SdPeriodicSyncJob() override = default;
+
+  // delete copy and move
+  SdPeriodicSyncJob(const SdPeriodicSyncJob&) = delete;
+  SdPeriodicSyncJob& operator=(const SdPeriodicSyncJob&) = delete;
+  SdPeriodicSyncJob(SdPeriodicSyncJob&&) = delete;
+  SdPeriodicSyncJob& operator=(SdPeriodicSyncJob&&) = delete;
+
+  void init() override {}
+
+  void run() override {
+    sdCard_.periodicSync();
+    DEBUG_OUT("SdPeriodicSyncJob", CYAN, "Flushed SD card buffers\r\n");
+  }
+
+ private:
+  sd::SdCard& sdCard_;
+};
+
 }  // namespace logger

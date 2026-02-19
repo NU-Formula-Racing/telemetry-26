@@ -2,9 +2,7 @@
 
 #include <FreeRTOS.h>
 
-#include <cstdint>
 #include <cstring>
-#include <memory>
 
 #include "app/heartbeat.hpp"
 #include "app/logger.hpp"
@@ -17,10 +15,8 @@
 
 // TODO: //
 // write CAN driver, make PR
-// come up iwth a way to automatically increment log file names - writing to some flash register ?
 
 // not needed for EI MVP:
-// hardware timer instead of RTC for more accurate logging timestamps
 // send lora
 // receive lora
 // write lora driver
@@ -52,28 +48,6 @@ class BlinkJob : public tasks::IJob {
     DEBUG_OUT("blinkJob", MAGENTA, "blinkJob\r\n");
     HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
   }
-};
-
-class SdPeriodicSyncJob : public tasks::IJob {
- public:
-  SdPeriodicSyncJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
-  ~SdPeriodicSyncJob() override = default;
-
-  // delete copy and move
-  SdPeriodicSyncJob(const SdPeriodicSyncJob&) = delete;
-  SdPeriodicSyncJob& operator=(const SdPeriodicSyncJob&) = delete;
-  SdPeriodicSyncJob(SdPeriodicSyncJob&&) = delete;
-  SdPeriodicSyncJob& operator=(SdPeriodicSyncJob&&) = delete;
-
-  void init() override {}
-
-  void run() override {
-    sdCard_.periodicSync();
-    DEBUG_OUT("SdPeriodicSyncJob", CYAN, "Flushed SD card buffers\r\n");
-  }
-
- private:
-  sd::SdCard& sdCard_;
 };
 
 class RtcPrintJob : public tasks::IJob {
@@ -138,9 +112,9 @@ int main() {
 
   static logger::LoggerJob loggerJob(logger);
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loggerTask(
-      tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::STANDARD, 100, loggerJob});
+      tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::STANDARD, 10, loggerJob});
 
-  static SdPeriodicSyncJob sdSyncJob(*ctx.sd);
+  static logger::SdPeriodicSyncJob sdSyncJob(*ctx.sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
       tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
 
