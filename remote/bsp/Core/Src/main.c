@@ -48,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
-// RTC_HandleTypeDef hrtc;
+RTC_HandleTypeDef hrtc;
 
 SD_HandleTypeDef hsd;
 DMA_HandleTypeDef hdma_sdio;
