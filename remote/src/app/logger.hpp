@@ -1,9 +1,12 @@
 #pragma once
 
+#include <cstdint>
+
 #include "drivers/can/can.hpp"
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_utils.hpp"
 #include "drivers/sd/sd.hpp"
+#include "stm32f4xx_hal.h"
 #include "tasks/job.hpp"
 #include "utils/utils.hpp"
 
@@ -73,21 +76,27 @@ class Logger {
   }
 
   void logCanFrame(const LogFrame& logFrame) {
-    DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
-              " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
-              std::to_string(logFrame.canFrame.timestamp), "\r\n");
+    // DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
+    //           " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
+    //           std::to_string(logFrame.canFrame.timestamp), "\r\n");
 
     sdCard_.write(
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&logFrame), sizeof(LogFrame)));
   }
 
   void canLog() {
-    can::CanFrame frame;
+    can::CanFrame frame{};
     while (canBus_.receive(frame, 0)) {
-      LogFrame logFrame;
+      LogFrame logFrame{};
       logFrame.canFrame = frame;
 
       logCanFrame(logFrame);
+    }
+
+    static uint32_t lastSyncTime = HAL_GetTick();
+    if (HAL_GetTick() - lastSyncTime >= 500) {
+      sdCard_.periodicSync();
+      lastSyncTime = HAL_GetTick();
     }
   }
 
