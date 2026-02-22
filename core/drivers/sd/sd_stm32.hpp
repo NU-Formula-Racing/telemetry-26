@@ -64,13 +64,6 @@ class Stm32SdDriver : public ISdDriver {
   }
 
   virtual SdResult write(std::span<const uint8_t> data) override {
-    // update pointer to end of file
-    result_ = f_lseek(&file_, f_size(&file_));
-    if (result_ != FR_OK) {
-      return SdResult::ERROR;
-    }
-
-    // write data
     result_ = f_write(&file_, data.data(), static_cast<UINT>(data.size()), &bytesWritten_);
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }

@@ -44,10 +44,7 @@ class BlinkJob : public tasks::IJob {
     HAL_GPIO_WritePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin, GPIO_PIN_RESET);  // turn led off
   }
 
-  void run() override {
-    DEBUG_OUT("blinkJob", MAGENTA, "blinkJob\r\n");
-    HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin);
-  }
+  void run() override { HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin); }
 };
 
 class RtcPrintJob : public tasks::IJob {

@@ -73,9 +73,9 @@ class Logger {
   }
 
   void logCanFrame(const LogFrame& logFrame) {
-    DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
-              " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
-              std::to_string(logFrame.canFrame.timestamp), "\r\n");
+    // DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
+    //           " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
+    //           std::to_string(logFrame.canFrame.timestamp), "\r\n");
 
     sdCard_.write(
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&logFrame), sizeof(LogFrame)));

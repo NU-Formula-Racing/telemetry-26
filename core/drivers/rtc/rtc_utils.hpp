@@ -30,18 +30,18 @@ constexpr RtcWeekday calculateWeekday(uint16_t year, uint8_t month, uint8_t day)
   return static_cast<RtcWeekday>((dow == 0) ? 7 : dow);
 }
 
-// Convert __DATE__ ("Mmm dd yyyy") to RtcDate at compile-time
+// convert __DATE__ ("Mmm dd yyyy") to RtcDate at compile-time
 constexpr RtcDate parseCompilerDate(std::string_view dateStr) {
   RtcDate d{.weekday = RtcWeekday::MONDAY, .month = 1, .day = 1, .year = 0};
   if (dateStr.size() >= 11) {
-    // Parse Year (last two digits for STM32)
+    // parse year (last two digits for STM32)
     d.year = (dateStr.at(9) - '0') * 10 + (dateStr.at(10) - '0');
     uint16_t fullYear = 2000 + d.year;
 
-    // Parse Day (handle potential double space for single digit days e.g., "Feb  3 2026")
+    // parse day (handle potential double space for single digit days e.g., "Feb  3 2026")
     d.day = (dateStr.at(4) == ' ' ? 0 : dateStr.at(4) - '0') * 10 + (dateStr.at(5) - '0');
 
-    // Parse Month
+    // parse month
     std::string_view m = dateStr.substr(0, 3);
     if (m == "Jan") {
       d.month = 1;
