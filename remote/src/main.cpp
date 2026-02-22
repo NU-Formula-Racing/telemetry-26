@@ -111,10 +111,6 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loggerTask(
       tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::STANDARD, 10, loggerJob});
 
-  static logger::SdPeriodicSyncJob sdSyncJob(*ctx.sd);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> sdPeriodicSyncTask(
-      tasks::TaskConfig{"SdSyncTask", tasks::TaskPriority::STANDARD, 500, sdSyncJob});
-
   static RtcPrintJob rtcPrintJob(*ctx.rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
@@ -122,7 +118,6 @@ int main() {
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(loggerTask));
-  taskMan.addTask(std::move(sdPeriodicSyncTask));
   taskMan.addTask(std::move(rtcPrintTask));
 
   taskMan.startAllTasks();

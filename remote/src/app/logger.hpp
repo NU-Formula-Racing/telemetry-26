@@ -1,9 +1,12 @@
 #pragma once
 
+#include <cstdint>
+
 #include "drivers/can/can.hpp"
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_utils.hpp"
 #include "drivers/sd/sd.hpp"
+#include "stm32f4xx_hal.h"
 #include "tasks/job.hpp"
 #include "utils/utils.hpp"
 
@@ -82,12 +85,18 @@ class Logger {
   }
 
   void canLog() {
-    can::CanFrame frame;
+    can::CanFrame frame{};
     while (canBus_.receive(frame, 0)) {
-      LogFrame logFrame;
+      LogFrame logFrame{};
       logFrame.canFrame = frame;
 
       logCanFrame(logFrame);
+    }
+
+    static uint32_t lastSyncTime = HAL_GetTick();
+    if (HAL_GetTick() - lastSyncTime >= 500) {
+      sdCard_.periodicSync();
+      lastSyncTime = HAL_GetTick();
     }
   }
 
@@ -126,28 +135,6 @@ class LoggerJob : public tasks::IJob {
 
  private:
   Logger& logger_;
-};
-
-class SdPeriodicSyncJob : public tasks::IJob {
- public:
-  SdPeriodicSyncJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
-  ~SdPeriodicSyncJob() override = default;
-
-  // delete copy and move
-  SdPeriodicSyncJob(const SdPeriodicSyncJob&) = delete;
-  SdPeriodicSyncJob& operator=(const SdPeriodicSyncJob&) = delete;
-  SdPeriodicSyncJob(SdPeriodicSyncJob&&) = delete;
-  SdPeriodicSyncJob& operator=(SdPeriodicSyncJob&&) = delete;
-
-  void init() override {}
-
-  void run() override {
-    sdCard_.periodicSync();
-    DEBUG_OUT("SdPeriodicSyncJob", CYAN, "Flushed SD card buffers\r\n");
-  }
-
- private:
-  sd::SdCard& sdCard_;
 };
 
 }  // namespace logger
