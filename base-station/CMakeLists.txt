@@ -64,18 +64,22 @@ add_subdirectory(../third-party/etl ${CMAKE_BINARY_DIR}/etl)
 
 if(CMAKE_CROSSCOMPILING)
     # build .elf for target
-    add_executable(base-station.elf src/main.cpp)               
+    add_executable(base-station.elf src/main.cpp
+    bsp/startup_stm32f405xx.s
+    )               
 
     target_include_directories(base-station.elf PRIVATE 
                                ${CMAKE_CURRENT_SOURCE_DIR}/src/app
+                               ${CMAKE_CURRENT_SOURCE_DIR}/bsp/Core/Inc
+                               ${CMAKE_CURRENT_SOURCE_DIR}/bsp/FATFS
                                ${CMAKE_CURRENT_SOURCE_DIR}/bsp
+                               ${CMAKE_CURRENT_SOURCE_DIR}/../core
                               )
  
     target_link_libraries(base-station.elf PRIVATE
                             base-station_app
                             base-station_bsp 
                             core_drivers
-                            core_interfaces
                             core_tasks
                             core_resources
                             freertos_kernel
@@ -105,7 +109,6 @@ else()
 
     include(GoogleTest)
     include(CTest)
-    include(../tools/cmake/format.cmake)
 
     add_subdirectory(tests)
 endif()

@@ -112,7 +112,6 @@ else()
 
     include(GoogleTest)
     include(CTest)
-    include(../tools/cmake/format.cmake)
 
     add_subdirectory(tests)
 endif()

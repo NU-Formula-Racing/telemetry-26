@@ -1,48 +1,67 @@
+#include "main.h"
+
 #include <FreeRTOS.h>
 
-#include "app/app.hpp"
-#include "context.hpp"
-#include "task.hpp"
+#include <cstring>
+
+#include "app/base_station.hpp"
+#include "resources/context.hpp"
+#include "tasks/task.hpp"
+#include "utils/utils.hpp"
 
 extern "C" void BspInit(void);
-// get STM HAL peripheral handlers
-// extern SPI_HandleTypeDef hspi2;
+
+class BlinkJob : public tasks::IJob {
+ public:
+  BlinkJob() = default;
+  ~BlinkJob() override = default;
+
+  // delete copy and move
+  BlinkJob(const BlinkJob&) = delete;
+  BlinkJob& operator=(const BlinkJob&) = delete;
+  BlinkJob(BlinkJob&&) = delete;
+  BlinkJob& operator=(BlinkJob&&) = delete;
+
+  void init() override {
+    HAL_GPIO_WritePin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin, GPIO_PIN_RESET);  // turn led off
+  }
+
+  void run() override { HAL_GPIO_TogglePin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin); }
+};
 
 int main() {
-  // init HAL and BSP
-  // HAL_Init();
   BspInit();
 
-  // instantiate task manager
-  // static tasks::TaskManager taskMan;
+  VERBOSITY(Verbosity::VERBOSE);
 
-  // instantiate drivers STATICALLY - taskman, lora, usb
-  // static tasks::TaskManager taskMan;
-  // pass in HAL dependencies
-  // static StmLora loraDriver(&hspi2);
-  // static StmUsb usbDriver;
+  // instantiate task manager
+  static tasks::TaskManager taskMan;
+
+  // instantiate drivers & interfaces STATICALLY
 
   // create and populate context
-  resources::Context context;
-  // context.taskManager = &taskMan;
-  // context.lora = &loraDriver;
-  // context.usb = &usbDriver;
-  // context.can = nullptr;
-  // context.sd = nullptr;
-  // context.rtc = nullptr;
+  static resources::Context ctx;
+  ctx.taskManager = &taskMan;
+  // ctx.lora = &lora;
+  // ctx.usb = nullptr;
+  // ctx.can = &can;
+  // ctx.sd = &sd;
+  // ctx.rtc = &rtc;
 
-  // init base-station app: should add tasks, configure app settings
-  // pass in context, only store specific resources needed in app private members, dont store the
-  // entire registry
-  // can also setup tasks in ctor of app, tasks can be initialized in private variable section
+  // instantiate apps
+  // static base::BaseStation baseStation(lora, usb);
+
+  // setup tasks
+  static BlinkJob blinkJob;
+  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
+      tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
   // start all tasks
-  // taskMan.startAllTasks();
-  // vTaskStartScheduler() should be the last thing called before while(true)
+  taskMan.addTask(std::move(blinkTask));
+
+  taskMan.startAllTasks();
   vTaskStartScheduler();
 
   while (true) {
   }
-
-  return 0;
 }

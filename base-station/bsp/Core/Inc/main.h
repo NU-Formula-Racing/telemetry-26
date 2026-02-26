@@ -69,12 +69,12 @@ void Error_Handler(void);
 #define LORA_DIO4_GPIO_Port GPIOC
 #define LORA_DIO5_Pin GPIO_PIN_5
 #define LORA_DIO5_GPIO_Port GPIOC
-#define nLORA_CS_Pin GPIO_PIN_12
-#define nLORA_CS_GPIO_Port GPIOB
-#define nLORA_RESET_Pin GPIO_PIN_6
-#define nLORA_RESET_GPIO_Port GPIOC
-#define nLORA_STATUS_LED_Pin GPIO_PIN_5
-#define nLORA_STATUS_LED_GPIO_Port GPIOB
+#define LORA_CS_Pin GPIO_PIN_12
+#define LORA_CS_GPIO_Port GPIOB
+#define LORA_RESET_Pin GPIO_PIN_6
+#define LORA_RESET_GPIO_Port GPIOC
+#define LORA_STATUS_Pin GPIO_PIN_5
+#define LORA_STATUS_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
