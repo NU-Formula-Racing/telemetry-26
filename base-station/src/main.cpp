@@ -55,24 +55,16 @@ int main() {
   // static base::BaseStation baseStation(lora, usb);
 
   // setup tasks
-  // static BlinkJob blinkJob;
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
-  //    tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
+  static BlinkJob blinkJob;
+  static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
+      tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
   // start all tasks
-  // taskMan.addTask(std::move(blinkTask));
+  taskMan.addTask(std::move(blinkTask));
 
-  // taskMan.startAllTasks();
-  // vTaskStartScheduler();
+  taskMan.startAllTasks();
+  vTaskStartScheduler();
 
   while (true) {
-    const char* msg = "cmake\r\n";
-
-    // 3. Transmit over USB
-    // CDC_Transmit_FS takes a uint8_t pointer and the length of the data
-    CDC_Transmit_FS((uint8_t*)msg, strlen(msg));
-    // DEBUG_OUT("BlinkJob", MAGENTA, "blinking led\r\n");
-    HAL_GPIO_TogglePin(LORA_STATUS_GPIO_Port, LORA_STATUS_Pin);
-    HAL_Delay(500);
   }
 }
