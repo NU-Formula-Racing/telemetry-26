@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2025 STMicroelectronics.
+  * Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -69,8 +69,8 @@ void Error_Handler(void);
 #define LORA_DIO4_GPIO_Port GPIOC
 #define LORA_DIO5_Pin GPIO_PIN_5
 #define LORA_DIO5_GPIO_Port GPIOC
-#define LORA_CS_Pin GPIO_PIN_12
-#define LORA_CS_GPIO_Port GPIOB
+#define SPI2_CS_Pin GPIO_PIN_12
+#define SPI2_CS_GPIO_Port GPIOB
 #define LORA_RESET_Pin GPIO_PIN_6
 #define LORA_RESET_GPIO_Port GPIOC
 #define LORA_STATUS_Pin GPIO_PIN_5
