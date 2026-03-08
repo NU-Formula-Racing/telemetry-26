@@ -24,6 +24,7 @@ enum class TaskStackSize : uint32_t {
   SMALL = 128,
   MEDIUM = 256,
   LARGE = 512,
+  XLARGE = 1024,
 };
 
 struct TaskConfig {
@@ -96,7 +97,7 @@ class FreeRtosTask final : public AbstractTask {
 // TaskManager class to manage multiple tasks
 using FreeRtosTaskVariant =
     std::variant<FreeRtosTask<TaskStackSize::SMALL>, FreeRtosTask<TaskStackSize::MEDIUM>,
-                 FreeRtosTask<TaskStackSize::LARGE>>;
+                 FreeRtosTask<TaskStackSize::LARGE>, FreeRtosTask<TaskStackSize::XLARGE>>;
 class TaskManager {
  public:
   TaskManager() = default;
@@ -124,7 +125,7 @@ class TaskManager {
 
  private:
   static constexpr size_t maxTasks_ = 10;
-  etl::vector<FreeRtosTaskVariant, maxTasks_> tasks_{};
+  etl::vector<FreeRtosTaskVariant, maxTasks_> tasks_;
 };
 
 }  // namespace tasks

@@ -21,14 +21,20 @@
    as "Use dma template" is disabled. */
 
 /* USER CODE BEGIN firstSection */
-/* can be used to modify / undefine following code or add new definitions */
+#include <FreeRTOS.h>
+#include <task.h>
+
+volatile uint8_t sd_write_cplt = 0;
+volatile uint8_t sd_read_cplt = 0;
+
+void BSP_SD_WriteCpltCallback(void) { sd_write_cplt = 1; }
+
+void BSP_SD_ReadCpltCallback(void) { sd_read_cplt = 1; }
 /* USER CODE END firstSection*/
 
 /* Includes ------------------------------------------------------------------*/
-#include "sd_diskio.h"
-
 #include "../../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h"
-
+#include "sd_diskio.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -138,10 +144,14 @@ DSTATUS SD_status(BYTE lun) { return SD_CheckStatus(lun); }
 
 DRESULT SD_read(BYTE lun, BYTE* buff, DWORD sector, UINT count) {
   DRESULT res = RES_ERROR;
+  sd_read_cplt = 0;
+  if (BSP_SD_ReadBlocks_DMA((uint32_t*)buff, (uint32_t)(sector), count) == MSD_OK) {
+    /* wait until the DMA transfer is finished */ while (sd_read_cplt == 0) {
+      vTaskDelay(1);
+    }
 
-  if (BSP_SD_ReadBlocks((uint32_t*)buff, (uint32_t)(sector), count, SD_TIMEOUT) == MSD_OK) {
-    /* wait until the read operation is finished */
-    while (BSP_SD_GetCardState() != MSD_OK) {
+    /* wait until the read operation is finished */ while (BSP_SD_GetCardState() != MSD_OK) {
+      vTaskDelay(1);
     }
     res = RES_OK;
   }
@@ -165,9 +175,16 @@ DRESULT SD_read(BYTE lun, BYTE* buff, DWORD sector, UINT count) {
 DRESULT SD_write(BYTE lun, const BYTE* buff, DWORD sector, UINT count) {
   DRESULT res = RES_ERROR;
 
-  if (BSP_SD_WriteBlocks((uint32_t*)buff, (uint32_t)(sector), count, SD_TIMEOUT) == MSD_OK) {
+  sd_write_cplt = 0;
+  if (BSP_SD_WriteBlocks_DMA((uint32_t*)buff, (uint32_t)(sector), count) == MSD_OK) {
+    /* wait until the DMA transfer is finished */
+    while (sd_write_cplt == 0) {
+      vTaskDelay(1);
+    }
+
     /* wait until the Write operation is finished */
     while (BSP_SD_GetCardState() != MSD_OK) {
+      vTaskDelay(1);
     }
     res = RES_OK;
   }

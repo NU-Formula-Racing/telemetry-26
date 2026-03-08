@@ -92,12 +92,6 @@ class Logger {
 
       logCanFrame(logFrame);
     }
-
-    static uint32_t lastSyncTime = HAL_GetTick();
-    if (HAL_GetTick() - lastSyncTime >= 500) {
-      sdCard_.periodicSync();
-      lastSyncTime = HAL_GetTick();
-    }
   }
 
  private:
@@ -135,6 +129,25 @@ class LoggerJob : public tasks::IJob {
 
  private:
   Logger& logger_;
+};
+
+class SdWriteJob : public tasks::IJob {
+ public:
+  SdWriteJob(sd::SdCard& sdCard) : sdCard_(sdCard) {}
+  ~SdWriteJob() override = default;
+
+  // delete copy and move
+  SdWriteJob(const SdWriteJob&) = delete;
+  SdWriteJob& operator=(const SdWriteJob&) = delete;
+  SdWriteJob(SdWriteJob&&) = delete;
+  SdWriteJob& operator=(SdWriteJob&&) = delete;
+
+  void init() override {}
+
+  void run() override { sdCard_.handleFlush(); }
+
+ private:
+  sd::SdCard& sdCard_;
 };
 
 }  // namespace logger

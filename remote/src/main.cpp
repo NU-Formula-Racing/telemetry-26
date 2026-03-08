@@ -14,7 +14,8 @@
 #include "utils/utils.hpp"
 
 // TODO: //
-// write CAN driver, make PR
+// CAN status msg
+// dont break when theres no SD card lol
 
 // not needed for EI MVP:
 // send lora
@@ -22,7 +23,7 @@
 // write lora driver
 // GPS
 // read from sd
-// clean up long ahh includes
+// write CAN driver, make PR
 // change cmake to lint regardless of platform
 // phase out STM main.c and init code in drivers, comment out main.c in CMakeLists
 // write a heartbeat class and driver for gpios/leds
@@ -90,15 +91,6 @@ int main() {
   static can::Stm32CanDriver canDriver;
   static can::CanBus can(canDriver);
 
-  // create and populate context
-  static resources::Context ctx;
-  ctx.taskManager = &taskMan;
-  // ctx.lora = &lora;
-  // ctx.usb = nullptr;
-  ctx.can = &can;
-  ctx.sd = &sd;
-  ctx.rtc = &rtc;
-
   // instantiate apps
   static logger::Logger logger(sd, rtc, can);
 
@@ -108,10 +100,14 @@ int main() {
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
   static logger::LoggerJob loggerJob(logger);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loggerTask(
-      tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::STANDARD, 10, loggerJob});
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loggerTask(
+      tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::HIGH, 10, loggerJob});
 
-  static RtcPrintJob rtcPrintJob(*ctx.rtc);
+  static logger::SdWriteJob sdWriteJob(sd);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
+      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 500, sdWriteJob});
+
+  static RtcPrintJob rtcPrintJob(rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
@@ -119,7 +115,7 @@ int main() {
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(loggerTask));
   taskMan.addTask(std::move(rtcPrintTask));
-
+  taskMan.addTask(std::move(sdWriteTask));
   taskMan.startAllTasks();
   vTaskStartScheduler();
 

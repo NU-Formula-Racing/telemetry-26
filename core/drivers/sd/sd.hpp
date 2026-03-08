@@ -1,4 +1,6 @@
 #pragma once
+#include <semphr.h>
+
 #include <cstdint>
 #include <span>
 #include <string>
@@ -116,23 +118,37 @@ class SdCard {
   // TODO: return a status
   void write(std::span<const uint8_t> data) {
     // check that data fits into internal buffer
-    if (internalBuffer_.size() + data.size() > INTERNAL_BUFFER_SIZE) {
-      flushBuffer();  // send full chunk to card
+    if (activeBuffer_->size() + data.size() > INTERNAL_BUFFER_SIZE) {
+      if (flushBuffer_ != nullptr) {
+        // both buffers are full ....
+        return;
+      }
+
+      // flip buffers
+      flushBuffer_ = activeBuffer_;
+      activeBuffer_ = (activeBuffer_ == &internalBufferA_) ? &internalBufferB_ : &internalBufferA_;
+
+      xSemaphoreGive(flushSem_);  // signal flush task to write data to card
     }
     // copy data to internal buffer
     for (const auto& i : data) {
-      internalBuffer_.push_back(i);
+      activeBuffer_->push_back(i);
     }
   }
 
   // TODO: read
 
-  // function to be called periodically to flush internal buffer to the card
-  void periodicSync() {
-    if (!internalBuffer_.empty()) {
-      flushBuffer();
+  void handleFlush() {
+    // wait for signal that buffer is full
+    if (xSemaphoreTake(flushSem_, portMAX_DELAY) == pdTRUE) {
+      if (flushBuffer_ != nullptr) {
+        driver_.write(std::span(flushBuffer_->data(), flushBuffer_->size()));
+        driver_.flush();
+
+        flushBuffer_->clear();
+        flushBuffer_ = nullptr;  // buffer is now free for use again
+      }
     }
-    driver_.flush();
   }
 
   void registerTimeProvider(TimeProviderCb cb) { driver_.registerTimeProvider(cb); }
@@ -160,20 +176,20 @@ class SdCard {
     return prefix + indexStr + suffix;
   }
 
-  // send internal buffer to the card and clear it
-  void flushBuffer() {
-    driver_.write(std::span<const uint8_t>(internalBuffer_.data(), internalBuffer_.size()));
-    internalBuffer_.clear();
-  }
-
   ISdDriver& driver_;
-  std::string filename_;
+  std::string filename_{};
 
-  // 512B internal buffer for write operations
+  // 4KB internal buffers for write operations
   // aligns with standard SD allocation unit size (512 bytes per sector)
-  // TODO: (maybe) ping pong buffering, increase size to something like 4KB (8 sectors) later
-  static constexpr size_t INTERNAL_BUFFER_SIZE = 512;
-  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBuffer_;
+  // TODO: (maybe) ping pong buffering, increase size to something like 8KB (16 sectors) later
+  static constexpr size_t INTERNAL_BUFFER_SIZE = 4096;
+  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBufferA_;
+  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBufferB_;
+
+  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE>* activeBuffer_ = &internalBufferA_;
+  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE>* flushBuffer_ = nullptr;
+
+  SemaphoreHandle_t flushSem_ = xSemaphoreCreateBinary();
 };
 
 }  // namespace sd

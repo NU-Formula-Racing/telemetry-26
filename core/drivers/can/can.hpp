@@ -94,7 +94,7 @@ class CanBus {
 
   ICanDriver& driver_;
   inline static QueueHandle_t rxQueue_ = nullptr;
-  static constexpr size_t queueLength_ = 100;
+  static constexpr size_t queueLength_ = 500;
 };
 
 }  // namespace can
