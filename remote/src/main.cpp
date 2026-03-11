@@ -4,8 +4,8 @@
 
 #include <cstring>
 
-#include "app/heartbeat.hpp"
 #include "app/logger.hpp"
+#include "app/status.hpp"
 #include "drivers/can/can_stm32.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd_stm32.hpp"
@@ -16,6 +16,7 @@
 // TODO: //
 // CAN status msg
 // dont break when theres no SD card lol
+// delete context
 
 // not needed for EI MVP:
 // send lora
@@ -41,9 +42,7 @@ class BlinkJob : public tasks::IJob {
   BlinkJob(BlinkJob&&) = delete;
   BlinkJob& operator=(BlinkJob&&) = delete;
 
-  void init() override {
-    HAL_GPIO_WritePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin, GPIO_PIN_RESET);  // turn led off
-  }
+  void init() override { HAL_GPIO_WritePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin, GPIO_PIN_RESET); }
 
   void run() override { HAL_GPIO_TogglePin(SD_STATUS_GPIO_Port, SD_STATUS_Pin); }
 };
@@ -93,9 +92,11 @@ int main() {
 
   // instantiate apps
   static logger::Logger logger(sd, rtc, can);
+  // static wireless::Wireless(lora);
+  // static remote::Remote remote(logger, wireless, can);
 
   // setup tasks
-  static BlinkJob blinkJob;
+  static /*remote::*/ BlinkJob blinkJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
@@ -106,6 +107,10 @@ int main() {
   static logger::SdWriteJob sdWriteJob(sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 500, sdWriteJob});
+
+  // static wireless::LoraWriteJob loraWriteJob(lora);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
+  //     tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 100, loraWriteJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
