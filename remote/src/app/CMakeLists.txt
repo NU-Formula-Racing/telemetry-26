@@ -2,8 +2,10 @@ add_library(remote_app
             #list all files in app/
             # app.hpp
             # app.cpp
+            # status.hpp
             logger.hpp
-            # heartbeat.hpp
+            # wireless.hpp
+            # remote.hpp
 )
 
 target_link_libraries(remote_app PRIVATE 

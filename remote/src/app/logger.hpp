@@ -15,7 +15,6 @@ namespace logger {
 #pragma pack(push, 1)
 struct LogFrame {
   can::CanFrame canFrame;
-  // TODO: GPS
 };
 
 struct LogHeader {
@@ -44,8 +43,8 @@ class Logger {
     rtc_.init();
     constexpr rtc::RtcDate compileDate = rtc::utils::parseCompilerDate(__DATE__);
     constexpr rtc::RtcTime compileTime = rtc::utils::parseCompilerTime(__TIME__);
-    rtc_.setDate(compileDate, 0xAAAA);
-    rtc_.setTime(compileTime, 0xAAAA);
+    rtc_.setDate(compileDate, 0xAAAB);
+    rtc_.setTime(compileTime, 0xAAAB);
 
     // setup sd card
     sdCard_.init();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "usbd_cdc_if.h"
 
 // ansi color codes

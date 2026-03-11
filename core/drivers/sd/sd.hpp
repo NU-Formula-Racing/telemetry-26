@@ -114,25 +114,34 @@ class SdCard {
   }
 
   // write some raw data to the internal SD buffer
-  // data is only written to the card with flushBuffer() and driver_.flush()
+  // data is only written to the card with handleFlush() and driver_.flush()
   // TODO: return a status
   void write(std::span<const uint8_t> data) {
-    // check that data fits into internal buffer
-    if (activeBuffer_->size() + data.size() > INTERNAL_BUFFER_SIZE) {
-      if (flushBuffer_ != nullptr) {
-        // both buffers are full ....
-        return;
+    while (!data.empty()) {
+      // calculate how much space is left in active buffer and how much of the input data we can
+      // copy in
+      const size_t spaceRemaining = INTERNAL_BUFFER_SIZE - activeBuffer_->size();
+      const size_t toCopy = std::min(spaceRemaining, data.size());
+
+      // copy the data into the active buffer
+      auto chunk = data.subspan(0, toCopy);
+      activeBuffer_->insert(activeBuffer_->end(), chunk.begin(), chunk.end());
+
+      data = data.subspan(toCopy);
+
+      if (activeBuffer_->size() == INTERNAL_BUFFER_SIZE) {
+        if (flushBuffer_ != nullptr) {
+          // both buffers are full .....
+          return;
+        }
+
+        // flip buffers
+        flushBuffer_ = activeBuffer_;
+        activeBuffer_ =
+            (activeBuffer_ == &internalBufferA_) ? &internalBufferB_ : &internalBufferA_;
+
+        xSemaphoreGive(flushSem_);  // signal flush task to write data to card
       }
-
-      // flip buffers
-      flushBuffer_ = activeBuffer_;
-      activeBuffer_ = (activeBuffer_ == &internalBufferA_) ? &internalBufferB_ : &internalBufferA_;
-
-      xSemaphoreGive(flushSem_);  // signal flush task to write data to card
-    }
-    // copy data to internal buffer
-    for (const auto& i : data) {
-      activeBuffer_->push_back(i);
     }
   }
 
@@ -181,10 +190,9 @@ class SdCard {
 
   // 4KB internal buffers for write operations
   // aligns with standard SD allocation unit size (512 bytes per sector)
-  // TODO: (maybe) ping pong buffering, increase size to something like 8KB (16 sectors) later
   static constexpr size_t INTERNAL_BUFFER_SIZE = 4096;
-  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBufferA_;
-  etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBufferB_;
+  /* alignas(32) */ etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBufferA_;
+  /* alignas(32) */ etl::vector<uint8_t, INTERNAL_BUFFER_SIZE> internalBufferB_;
 
   etl::vector<uint8_t, INTERNAL_BUFFER_SIZE>* activeBuffer_ = &internalBufferA_;
   etl::vector<uint8_t, INTERNAL_BUFFER_SIZE>* flushBuffer_ = nullptr;
