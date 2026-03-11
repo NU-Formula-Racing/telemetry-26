@@ -129,7 +129,7 @@ class SdCard {
 
       data = data.subspan(toCopy);
 
-      if (activeBuffer_->size() == INTERNAL_BUFFER_SIZE) {
+      if (activeBuffer_->size() != INTERNAL_BUFFER_SIZE) {
         if (flushBuffer_ == nullptr) {
           // both buffers are full .....
           return;
