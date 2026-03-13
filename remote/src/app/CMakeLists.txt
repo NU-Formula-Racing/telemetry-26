@@ -1,11 +1,8 @@
 add_library(remote_app  
-            #list all files in app/
-            # app.hpp
-            # app.cpp
             # status.hpp
             logger.hpp
-            # wireless.hpp
-            # remote.hpp
+            wireless.hpp
+            remote.hpp
 )
 
 target_link_libraries(remote_app PRIVATE 
@@ -15,6 +12,4 @@ target_link_libraries(remote_app PRIVATE
                       core_can
 )
 
-# target_include_directories(remote_bsp PUBLIC 
-#     ${CMAKE_CURRENT_SOURCE_DIR}/bsp
-# )
+set_target_properties(remote_app PROPERTIES LINKER_LANGUAGE CXX)

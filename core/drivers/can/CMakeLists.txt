@@ -9,3 +9,5 @@ target_link_libraries(core_can PRIVATE platform_bsp)
 target_include_directories(core_can PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}
                           )
+
+set_target_properties(core_can PROPERTIES LINKER_LANGUAGE CXX)

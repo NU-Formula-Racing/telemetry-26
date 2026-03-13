@@ -78,14 +78,12 @@ if(CMAKE_CROSSCOMPILING)
  
     target_link_libraries(base-station.elf PRIVATE
                             base-station_app
-                            base-station_bsp 
+                            base-station_bsp
                             core_drivers
                             core_tasks
-                            core_resources
                             freertos_kernel
                             freertos_config
                          )
-
     add_subdirectory(../third-party/freertos ${CMAKE_BINARY_DIR}/freertos)
 
     # generate .bin and .hex from .elf using objcopy

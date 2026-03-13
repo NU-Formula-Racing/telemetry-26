@@ -5,11 +5,14 @@
 #include <cstring>
 
 #include "app/logger.hpp"
+#include "app/remote.hpp"
 #include "app/status.hpp"
+#include "app/wireless.hpp"
 #include "drivers/can/can_stm32.hpp"
+#include "drivers/lora/lora.hpp"
+#include "drivers/lora/spi.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd_stm32.hpp"
-#include "resources/context.hpp"
 #include "tasks/task.hpp"
 #include "utils/utils.hpp"
 
@@ -22,7 +25,6 @@
 // send lora
 // receive lora
 // write lora driver
-// GPS
 // read from sd
 // write CAN driver, make PR
 // change cmake to lint regardless of platform
@@ -90,19 +92,22 @@ int main() {
   static can::Stm32CanDriver canDriver;
   static can::CanBus can(canDriver);
 
+  static spi::Spi spi2;
+  static lora::Lora lora(spi2);
+
   // instantiate apps
-  static logger::Logger logger(sd, rtc, can);
-  // static wireless::Wireless(lora);
-  // static remote::Remote remote(logger, wireless, can);
+  static logger::Logger logger(sd, rtc /*, can*/);
+  static wireless::Wireless wireless(lora);
+  static remote::Remote remote(logger, wireless, can);
 
   // setup tasks
   static /*remote::*/ BlinkJob blinkJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
-  static logger::LoggerJob loggerJob(logger);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loggerTask(
-      tasks::TaskConfig{"LoggerTask", tasks::TaskPriority::HIGH, 10, loggerJob});
+  static remote::ProcessCanJob processCanJob(remote);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> processCanTask(
+      tasks::TaskConfig{"ProcessCanTask", tasks::TaskPriority::HIGH, 10, processCanJob});
 
   static logger::SdWriteJob sdWriteJob(sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
@@ -118,10 +123,12 @@ int main() {
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  taskMan.addTask(std::move(loggerTask));
-  taskMan.addTask(std::move(rtcPrintTask));
+  taskMan.addTask(std::move(processCanTask));
   taskMan.addTask(std::move(sdWriteTask));
+  // taskMan.addTask(std::move(loraWriteTask));
+  taskMan.addTask(std::move(rtcPrintTask));
   taskMan.startAllTasks();
+
   vTaskStartScheduler();
 
   while (true) {

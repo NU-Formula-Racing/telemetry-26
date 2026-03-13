@@ -6,3 +6,5 @@ add_library(base-station_app
 target_link_libraries(base-station_app PRIVATE 
                        core_drivers
                       )
+
+set_target_properties(base-station_app PROPERTIES LINKER_LANGUAGE CXX)

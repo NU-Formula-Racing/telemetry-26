@@ -83,7 +83,6 @@ if(CMAKE_CROSSCOMPILING)
                             remote_bsp 
                             core_drivers
                             core_tasks
-                            core_resources
                             freertos_kernel
                             freertos_config
                             nfr_canlib

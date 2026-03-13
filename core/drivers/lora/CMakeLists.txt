@@ -1,7 +1,7 @@
 add_library(core_lora
             # list all lora files
             lora.hpp
-            lora.cpp
+            spi.hpp
             )
 
 target_link_libraries(core_lora PRIVATE platform_bsp)
@@ -9,3 +9,5 @@ target_link_libraries(core_lora PRIVATE platform_bsp)
 target_include_directories(core_lora PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}
                           )
+
+set_target_properties(core_lora PROPERTIES LINKER_LANGUAGE CXX)

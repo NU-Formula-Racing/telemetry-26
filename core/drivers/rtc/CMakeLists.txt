@@ -12,3 +12,5 @@ target_link_libraries(core_rtc
 target_include_directories(core_rtc PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}
                           )
+
+set_target_properties(core_rtc PROPERTIES LINKER_LANGUAGE CXX)
