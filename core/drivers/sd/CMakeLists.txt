@@ -11,3 +11,5 @@ target_link_libraries(core_sd
 target_include_directories(core_sd PUBLIC 
                            ${CMAKE_CURRENT_SOURCE_DIR}
                           )
+
+set_target_properties(core_sd PROPERTIES LINKER_LANGUAGE CXX)

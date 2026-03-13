@@ -6,17 +6,12 @@
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_utils.hpp"
 #include "drivers/sd/sd.hpp"
-#include "stm32f4xx_hal.h"
 #include "tasks/job.hpp"
 #include "utils/utils.hpp"
 
 namespace logger {
 
 #pragma pack(push, 1)
-struct LogFrame {
-  can::CanFrame canFrame;
-};
-
 struct LogHeader {
   std::array<uint8_t, 9> version;  // NFR26000\n -> NFR26 v0.0.0
   rtc::RtcDate startDate;
@@ -26,8 +21,7 @@ struct LogHeader {
 
 class Logger {
  public:
-  Logger(sd::SdCard& sdCard, rtc::Rtc& rtc, can::CanBus& canBus)
-      : sdCard_(sdCard), rtc_(rtc), canBus_(canBus) {}
+  Logger(sd::SdCard& sdCard, rtc::Rtc& rtc) : sdCard_(sdCard), rtc_(rtc) {}
   ~Logger() = default;
 
   Logger(const Logger&) = delete;
@@ -35,7 +29,7 @@ class Logger {
   Logger(Logger&&) = delete;
   Logger& operator=(Logger&&) = delete;
 
-  void setup() {
+  void init() {
     // give ptr to active RTC to static function for providing FATFS time metadata
     activeRtc_ = &rtc_;
 
@@ -50,9 +44,6 @@ class Logger {
     sdCard_.init();
     sdCard_.registerTimeProvider(provideFatTime);
     sdCard_.openRollingLogFile(rtc_.getDate().toString());
-
-    // setup can bus
-    canBus_.init();
 
     // log header
     LogHeader header;
@@ -74,23 +65,13 @@ class Logger {
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(line.data()), line.size()));
   }
 
-  void logCanFrame(const LogFrame& logFrame) {
+  void logCanFrame(const can::CanFrame& canFrame) {
     // DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
     //           " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
     //           std::to_string(logFrame.canFrame.timestamp), "\r\n");
 
-    sdCard_.write(
-        std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&logFrame), sizeof(LogFrame)));
-  }
-
-  void canLog() {
-    can::CanFrame frame{};
-    while (canBus_.receive(frame, 0)) {
-      LogFrame logFrame{};
-      logFrame.canFrame = frame;
-
-      logCanFrame(logFrame);
-    }
+    sdCard_.write(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&canFrame),
+                                           sizeof(can::CanFrame)));
   }
 
  private:
@@ -104,30 +85,10 @@ class Logger {
 
   sd::SdCard& sdCard_;
   rtc::Rtc& rtc_;
-  can::CanBus& canBus_;
 
   const std::array<uint8_t, 9> version_ = {'N', 'F', 'R', '2', '6', '0', '0', '0', '\n'};
 
   inline static rtc::Rtc* activeRtc_ = nullptr;
-};
-
-class LoggerJob : public tasks::IJob {
- public:
-  LoggerJob(Logger& logger) : logger_(logger) {}
-  ~LoggerJob() override = default;
-
-  // delete copy and move
-  LoggerJob(const LoggerJob&) = delete;
-  LoggerJob& operator=(const LoggerJob&) = delete;
-  LoggerJob(LoggerJob&&) = delete;
-  LoggerJob& operator=(LoggerJob&&) = delete;
-
-  void init() override { logger_.setup(); }
-
-  void run() override { logger_.canLog(); }
-
- private:
-  Logger& logger_;
 };
 
 class SdWriteJob : public tasks::IJob {
