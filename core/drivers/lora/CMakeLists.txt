@@ -1,6 +1,7 @@
 add_library(core_lora
-            # list all lora files
             lora.hpp
+            rfm95.hpp
+            rfm95_utils.hpp
             spi.hpp
             )
 

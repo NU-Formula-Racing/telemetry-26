@@ -6,7 +6,7 @@ namespace wireless {
 
 class Wireless {
  public:
-  Wireless(lora::Lora& lora) : lora_(lora) {}
+  Wireless(lora::ILora& lora) : lora_(lora) {}
   ~Wireless() = default;
 
   // delete copy and move
@@ -15,7 +15,13 @@ class Wireless {
   Wireless(Wireless&&) = delete;
   Wireless& operator=(Wireless&&) = delete;
 
+  void init() { lora_.init(config_); }
+
  private:
-  lora::Lora& lora_;
+  lora::ILora& lora_;
+
+  lora::LoraConfig config_{
+      .boardType = lora::BoardType::REMOTE,
+  };
 };
 }  // namespace wireless

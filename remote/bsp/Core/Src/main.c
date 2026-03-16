@@ -107,7 +107,7 @@ void BspInit(void) {
   MX_CAN1_Init();
   MX_RTC_Init();
   MX_SDIO_SD_Init();
-  MX_SPI2_Init();
+  // MX_SPI2_Init();
   MX_USB_DEVICE_Init();
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */

@@ -9,7 +9,7 @@
 #include "app/status.hpp"
 #include "app/wireless.hpp"
 #include "drivers/can/can_stm32.hpp"
-#include "drivers/lora/lora.hpp"
+#include "drivers/lora/rfm95.hpp"
 #include "drivers/lora/spi.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd_stm32.hpp"
@@ -92,12 +92,13 @@ int main() {
   static can::Stm32CanDriver canDriver;
   static can::CanBus can(canDriver);
 
-  static spi::Spi spi2;
-  static lora::Lora lora(spi2);
+  // static spi::Stm32SpiDriver spi2(SPI2_CS_Pin);
+  // static rfm95::Rfm95 rfm95(spi2);
+  static lora::rfm95::Rfm95 rfm95;
 
   // instantiate apps
-  static logger::Logger logger(sd, rtc /*, can*/);
-  static wireless::Wireless wireless(lora);
+  static logger::Logger logger(sd, rtc);
+  static wireless::Wireless wireless(rfm95);
   static remote::Remote remote(logger, wireless, can);
 
   // setup tasks
@@ -113,7 +114,7 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 500, sdWriteJob});
 
-  // static wireless::LoraWriteJob loraWriteJob(lora);
+  // static rfm95::LoraJob loraJob(rfm95);
   // static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
   //     tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 100, loraWriteJob});
 
@@ -121,12 +122,17 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
+  static rfm95::LoraJob loraJob(rfm95);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
+      tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
+
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(processCanTask));
   taskMan.addTask(std::move(sdWriteTask));
   // taskMan.addTask(std::move(loraWriteTask));
   taskMan.addTask(std::move(rtcPrintTask));
+  taskMan.addTask(std::move(loraTask));
   taskMan.startAllTasks();
 
   vTaskStartScheduler();

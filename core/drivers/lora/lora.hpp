@@ -1,22 +1,29 @@
 #pragma once
 
-#include "spi.hpp"
+#include <cstdint>
 
 namespace lora {
 
-class Lora {
+enum class BoardType : uint8_t { BASE_STATION, REMOTE };
+
+struct LoraConfig {
+  // mode (might need to be configurable so we can change between sleep, standby, tx, rx)
+  // frequency = 915MHz
+  // bandwidth
+  // SF
+  // tx power
+  BoardType boardType;
+};
+
+class ILora {
  public:
-  Lora(spi::Spi& spi) : spi_(spi) {}
-  ~Lora() = default;
+  virtual ~ILora() = default;
 
-  // delete copy and move
-  Lora(const Lora&) = delete;
-  Lora& operator=(const Lora&) = delete;
-  Lora(Lora&&) = delete;
-  Lora& operator=(Lora&&) = delete;
+  virtual void init(LoraConfig config) = 0;
 
- private:
-  spi::Spi& spi_;
+  virtual void send(const uint8_t* data, size_t len) = 0;
+
+  virtual void receive(uint8_t* buffer, size_t len) = 0;
 };
 
 }  // namespace lora
