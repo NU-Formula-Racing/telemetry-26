@@ -39,9 +39,6 @@ int main() {
   static tasks::TaskManager taskMan;
 
   // instantiate drivers & interfaces STATICALLY
-  // extern SPI_HandleTypeDef hspi2;
-  // static spi::Spi spi2(SPI2_CS_Pin);
-  // static lora::rfm95::Rfm95 rfm95(spi2);
   static lora::rfm95::Rfm95 rfm95;
 
   // instantiate apps

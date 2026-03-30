@@ -66,4 +66,20 @@ constexpr uint8_t REG_AGC_THRESH_2 = 0x63;   // adjustment of the AGC thresholds
 constexpr uint8_t REG_AGC_THRESH_3 = 0x64;   // adjustment of the AGC thresholds (THRESH_3)
 constexpr uint8_t REG_PLL = 0x70;            // control of the PLL bandwidth
 
+// RFM95 OpModes (0x01 REG_OP_MODE)
+constexpr uint8_t OPMODE_LONG_RANGE_MODE = 0x80;  // 0: FSK/OOK, 1: LoRa
+constexpr uint8_t OPMODE_ACCESS_SHARED_REG =
+    0x40;  // 0: access LoRa registers page 0x0D-0x3F, 1: access FSK registers page (in LoRa mode)
+           // 0x0D-0x3F
+constexpr uint8_t OPMODE_LOW_FREQ_MODE_ON =
+    0x08;                               // 0: HF (868/915MHz) operation, 1: LF (433MHz) operation
+constexpr uint8_t OPMODE_SLEEP = 0x00;  // sleep mode
+constexpr uint8_t OPMODE_STDBY = 0x01;  // standby mode
+constexpr uint8_t OPMODE_FSTX = 0x02;   // frequency synthesis transmit mode
+constexpr uint8_t OPMODE_TX = 0x03;     // transmit mode
+constexpr uint8_t OPMODE_FSRX = 0x04;   // frequency synthesis receive mode
+constexpr uint8_t OPMODE_RXCONTINUOUS = 0x05;  // receive continuous mode
+constexpr uint8_t OPMODE_RXSINGLE = 0x06;      // receive single mode
+constexpr uint8_t OPMODE_CAD = 0x07;           // channel activity detection mode
+
 }  // namespace lora::rfm95

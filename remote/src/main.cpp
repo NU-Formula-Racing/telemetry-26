@@ -92,8 +92,6 @@ int main() {
   static can::Stm32CanDriver canDriver;
   static can::CanBus can(canDriver);
 
-  // static spi::Stm32SpiDriver spi2(SPI2_CS_Pin);
-  // static rfm95::Rfm95 rfm95(spi2);
   static lora::rfm95::Rfm95 rfm95;
 
   // instantiate apps

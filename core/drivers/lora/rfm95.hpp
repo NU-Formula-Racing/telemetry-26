@@ -37,8 +37,22 @@ class Rfm95 : public ILora {
       // update status
     }
 
-    // spi_.writeReg(REG_OP_MODE, MODE_SLEEP);
+    // configure rfm95
+    spi_.writeReg(REG_OP_MODE, OPMODE_SLEEP);
+    mode_ = OPMODE_SLEEP;
+    // vTaskDelay(pdMS_TO_TICKS(10));
+    spi_.writeReg(REG_OP_MODE, OPMODE_SLEEP | OPMODE_STDBY);
+    mode_ = OPMODE_SLEEP | OPMODE_STDBY;
+
+    // set freq to 915MHz
+    // Frf = (915 MHz * 2^19) / 32 MHz = 14991360 = 0xE4C000
+    spi_.writeReg(REG_FRF_MSB, 0xE4);
+    spi_.writeReg(REG_FRF_MID, 0xC0);
+    spi_.writeReg(REG_FRF_LSB, 0x00);
   }
+
+  // rfm needs to be in the correct mode before sending/receiving
+  // setMode(uint8_t mode) {}
 
   void send(const uint8_t* /*data*/, size_t /*len*/) override {
     // TODO
@@ -64,6 +78,7 @@ class Rfm95 : public ILora {
   }
 
   spi::Spi spi_;
+  uint8_t mode_;
 };
 
 class LoraJob : public tasks::IJob {
