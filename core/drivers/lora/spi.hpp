@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <span>
 
 #include "stm32f405xx.h"
 #include "stm32f4xx_hal_spi.h"
@@ -60,7 +61,14 @@ class Spi {
     return rx.at(1);
   }
 
-  void burstWrite(uint8_t reg, const uint8_t* data, size_t len) {}
+  void burstWrite(uint8_t reg, std::span<const uint8_t> data) {
+    std::array<uint8_t, 1> tx = {static_cast<uint8_t>(0x80 | reg)};
+
+    HAL_GPIO_WritePin(csPort_, csPin_, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi_, tx.data(), tx.size(), HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi_, data.data(), data.size(), HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(csPort_, csPin_, GPIO_PIN_SET);
+  }
 
  private:
   SPI_HandleTypeDef hspi_;

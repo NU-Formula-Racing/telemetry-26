@@ -51,14 +51,12 @@ class Rfm95 : public ILoraDriver {
     spi_.writeReg(REG_FRF_LSB, 0x00);
   }
 
-  void setOpmode(const uint8_t opmode) { spi_.writeReg(REG_OP_MODE, opmode); }
-
-  void send(const uint8_t* data, size_t len) override {
+  void send(std::span<const uint8_t> data) override {
     const uint8_t opmode = spi_.readReg(REG_OP_MODE);
     if ((opmode & 0x3) != OPMODE_TX && (opmode & 0x3) != OPMODE_FSTX) {
-      // TODO: not in tx mode, update status
+      setOpmode(OPMODE_TX);
     }
-    //
+    spi_.burstWrite(REG_FIFO, data);
   }
 
   void receive(uint8_t* /*buffer*/, size_t /*len*/) override {
@@ -80,7 +78,9 @@ class Rfm95 : public ILoraDriver {
     }
   }
 
-  spi::Spi spi_;
+  void setOpmode(const uint8_t opmode) { spi_.writeReg(REG_OP_MODE, opmode); }
+
+  spi::Spi spi_{};
 };
 
 class LoraJob : public tasks::IJob {

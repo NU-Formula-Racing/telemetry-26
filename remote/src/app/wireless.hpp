@@ -34,9 +34,7 @@ class Wireless {
   Wireless(Wireless&&) = delete;
   Wireless& operator=(Wireless&&) = delete;
 
-  void init() {
-    // lora_.init(config_);
-  }
+  void init() { lora_.init(config_); }
 
   void updateCanFrame(const can::CanFrame& frame) {
     // we dont want to wirelessly transmit extended ID msgs (DBC msgs only use std IDs)
@@ -95,7 +93,7 @@ class Wireless {
     }
 
     if (!packet.empty()) {
-      // lora_.send(std::span(packet.data(), packet.size()));
+      lora_.send(std::span(packet.data(), packet.size()));
     }
   }
 

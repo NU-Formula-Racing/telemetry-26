@@ -114,25 +114,25 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 500, sdWriteJob});
 
-  // static wireless::LoraWriteJob loraWriteJob(wireless);
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
-  //     tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 100, loraWriteJob});
+  static wireless::LoraWriteJob loraWriteJob(wireless);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
+      tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 100, loraWriteJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
-  static lora::rfm95::LoraJob loraJob(rfm95);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
-      tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
+  // static lora::rfm95::LoraJob loraJob(rfm95);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
+  //     tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(processCanTask));
   taskMan.addTask(std::move(sdWriteTask));
-  // taskMan.addTask(std::move(loraWriteTask));
+  taskMan.addTask(std::move(loraWriteTask));
   taskMan.addTask(std::move(rtcPrintTask));
-  taskMan.addTask(std::move(loraTask));
+  // taskMan.addTask(std::move(loraTask));
   taskMan.startAllTasks();
 
   vTaskStartScheduler();
