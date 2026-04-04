@@ -51,12 +51,27 @@ class Rfm95 : public ILoraDriver {
     spi_.writeReg(REG_FRF_LSB, 0x00);
   }
 
-  void send(std::span<const uint8_t> data) override {
-    const uint8_t opmode = spi_.readReg(REG_OP_MODE);
-    if ((opmode & 0x3) != OPMODE_TX && (opmode & 0x3) != OPMODE_FSTX) {
-      setOpmode(OPMODE_TX);
+  bool isTransmitting() override {
+    const uint8_t currentMode = spi_.readReg(REG_OP_MODE) & 0x07;
+    return (currentMode == OPMODE_TX);
+  }
+
+  bool send(std::span<const uint8_t> data) override {
+    if (isTransmitting()) {
+      return false;
     }
+
+    // can only write to FIFO in STDBY mode
+    setOpmode(OPMODE_STDBY);
+
+    uint8_t txBaseAddr = spi_.readReg(REG_FIFO_TX_BASE_ADDR);
+    spi_.writeReg(REG_FIFO_ADDR_PTR, txBaseAddr);
+
+    spi_.writeReg(REG_PAYLOAD_LENGTH, static_cast<uint8_t>(data.size()));
     spi_.burstWrite(REG_FIFO, data);
+
+    setOpmode(OPMODE_TX);
+    return true;
   }
 
   void receive(uint8_t* /*buffer*/, size_t /*len*/) override {

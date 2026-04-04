@@ -25,7 +25,10 @@ class ILoraDriver {
 
   virtual void init(LoraConfig config) = 0;
 
-  virtual void send(std::span<const uint8_t> data) = 0;
+  virtual bool isTransmitting() = 0;
+
+  // true = sent, false = dropped
+  virtual bool send(std::span<const uint8_t> data) = 0;
 
   virtual void receive(uint8_t* buffer, size_t len) = 0;
 };
@@ -42,16 +45,18 @@ class Lora {
 
   void init(LoraConfig config) { driver_.init(config); }
 
-  void send(std::span<const uint8_t> data) {
+  bool isTransmitting() { return driver_.isTransmitting(); }
+
+  bool send(std::span<const uint8_t> data) {
     if (data.size() > RADIO_FIFO_SIZE) {
       // packet is too big, dropping extra data for now
       // TODO: maybe implement fragmentation for larger packets if needed
       data = data.subspan(0, RADIO_FIFO_SIZE);
     }
-    driver_.send(data);
+    return driver_.send(data);
   }
 
-  // receive() {}
+  // receive()
 
   // size (255B) is max FIFO depth of RFM95, can be adjusted for other radios
   static constexpr size_t RADIO_FIFO_SIZE = 255;

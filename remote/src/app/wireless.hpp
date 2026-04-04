@@ -13,6 +13,7 @@
 #include "can.hpp"
 #include "drivers/lora/lora.hpp"
 #include "job.hpp"
+#include "utils/utils.hpp"
 
 namespace wireless {
 
@@ -64,9 +65,9 @@ class Wireless {
     }
   }
 
-  void sendCanFrames() {
-    if (canDataBuffer_.empty()) {
-      return;
+  bool sendCanFrames() {
+    if (canDataBuffer_.empty() || lora_.isTransmitting()) {
+      return false;
     }
 
     etl::vector<uint8_t, lora::Lora::RADIO_FIFO_SIZE> packet{};
@@ -93,8 +94,10 @@ class Wireless {
     }
 
     if (!packet.empty()) {
-      lora_.send(std::span(packet.data(), packet.size()));
+      return lora_.send(std::span(packet.data(), packet.size()));
     }
+
+    return false;
   }
 
  private:
@@ -129,7 +132,15 @@ class LoraWriteJob : public tasks::IJob {
 
   void init() override {}
 
-  void run() override { wireless_.sendCanFrames(); }
+  void run() override {
+    bool res = wireless_.sendCanFrames();
+    if (!res) {
+      DEBUG_OUT("LoraWriteJob", RED, "LoRa packet dropped :(\r\n");
+    }
+
+    // update remote status
+    // sent on CAN in a separate task
+  }
 
  private:
   Wireless& wireless_;
