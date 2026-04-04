@@ -21,6 +21,8 @@
 // RTC CAN msg
 // odometer - CAN, log, wireless
 // dont break when theres no SD card lol
+// lora and rfm95 rx stuff
+// base-station rx app layer and main.cpp
 
 // not needed for EI MVP:
 // send lora

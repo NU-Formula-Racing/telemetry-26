@@ -27,6 +27,7 @@ if(CMAKE_CROSSCOMPILING)
         -ffunction-sections
         -Wall
         -Wextra
+        -Wno-psabi
         --specs=nano.specs 
         $<$<CONFIG:Debug>:-Og>
     )

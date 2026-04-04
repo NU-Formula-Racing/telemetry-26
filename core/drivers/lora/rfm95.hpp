@@ -37,12 +37,35 @@ class Rfm95 : public ILoraDriver {
     if (version != 0x12) {
       // rfm95 module not detected/spi error
       // update status
+      DEBUG_OUT("RFM95", RED, "RFM95 module not detected or SPI error\r\n");
     }
 
     // configure rfm95
-    spi_.writeReg(REG_OP_MODE, OPMODE_SLEEP);
-    // vTaskDelay(pdMS_TO_TICKS(10));
-    spi_.writeReg(REG_OP_MODE, OPMODE_SLEEP | OPMODE_STDBY);
+    setOpmode(OPMODE_SLEEP);
+    setOpmode(OPMODE_SLEEP | OPMODE_LONG_RANGE_MODE);
+
+    setOpmode(OPMODE_STDBY | OPMODE_LONG_RANGE_MODE);
+
+    // 1001 001 0 = 0x92
+    // 500kHz bandwidth (0b1001)
+    // coding rate 4/5 (0b001)
+    // explicit header mode (0b0)
+    constexpr uint8_t modemConfig1 = 0x92;
+    spi_.writeReg(REG_MODEM_CONFIG_1, modemConfig1);
+
+    // 0111 0 1 00 = 0x74
+    // spreading factor SF7 (0b0111)
+    // TX continuous normal packet mode (0b0)
+    // enable CRC (0b1)
+    // default receiver timeout (0b00)
+    constexpr uint8_t modemConfig2 = 0x74;
+    spi_.writeReg(REG_MODEM_CONFIG_2, modemConfig2);
+
+    // 0000 0 0 00 = 0x00
+    // low data rate optimization off (0b0)
+    // AGC auto on disabled (0b0)
+    constexpr uint8_t modemConfig3 = 0x00;
+    spi_.writeReg(REG_MODEM_CONFIG_3, modemConfig3);
 
     // set freq to 915MHz
     // Frf = (915 MHz * 2^19) / 32 MHz = 14991360 = 0xE4C000
@@ -58,6 +81,8 @@ class Rfm95 : public ILoraDriver {
 
   bool send(std::span<const uint8_t> data) override {
     if (isTransmitting()) {
+      DEBUG_OUT("RFM95", RED, "Radio is currently transmitting, dropping packet of size ",
+                std::to_string(data.size()), "\r\n");
       return false;
     }
 

@@ -5,6 +5,8 @@
 
 #include <array>
 #include <cstdint>
+#include <format>
+#include <string>
 
 namespace can {
 
@@ -22,6 +24,12 @@ struct CanFrame {
   uint8_t dlc;                  // data length in bytes (0-8)
   CanIdType idType;             // standard or extended
   std::array<uint8_t, 8> data;  // data payload (0-8 bytes)
+
+  std::string dataToString() const {
+    return std::format("{:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}", data.at(0),
+                       data.at(1), data.at(2), data.at(3), data.at(4), data.at(5), data.at(6),
+                       data.at(7));
+  }
 };
 #pragma pack(pop)
 

@@ -35,7 +35,11 @@ class Wireless {
   Wireless(Wireless&&) = delete;
   Wireless& operator=(Wireless&&) = delete;
 
-  void init() { lora_.init(config_); }
+  void init() {
+    txIndex_ = 0;
+    canDataBuffer_.clear();
+    lora_.init(config_);
+  }
 
   void updateCanFrame(const can::CanFrame& frame) {
     // we dont want to wirelessly transmit extended ID msgs (DBC msgs only use std IDs)
@@ -53,11 +57,17 @@ class Wireless {
         // frame with same ID already exists, update it
         it->canFrame = frame;
         it->dirty = true;
+
+        DEBUG_OUT("WIRELESS", MAGENTA, "Updated CAN frame with ID ", std::to_string(frame.id),
+                  " to ", frame.dataToString(), "\r\n");
       } else {
         // frame with same ID doesnt exist, add new one to buffer
         // drop if buffer is full
         if (!canDataBuffer_.full()) {
           canDataBuffer_.push_back({.canFrame = frame, .dirty = true});
+
+          DEBUG_OUT("WIRELESS", MAGENTA, "Added new CAN frame with ID ", std::to_string(frame.id),
+                    " to ", frame.dataToString(), "\r\n");
         }
       }
 
@@ -94,6 +104,8 @@ class Wireless {
     }
 
     if (!packet.empty()) {
+      DEBUG_OUT("WIRELESS", GREEN, "Sending packet of size ", std::to_string(packet.size()),
+                "\r\n");
       return lora_.send(std::span(packet.data(), packet.size()));
     }
 
@@ -135,7 +147,9 @@ class LoraWriteJob : public tasks::IJob {
   void run() override {
     bool res = wireless_.sendCanFrames();
     if (!res) {
-      DEBUG_OUT("LoraWriteJob", RED, "LoRa packet dropped :(\r\n");
+      ERROR("LoraWriteJob", "LoRa packet dropped or empty :(\r\n");
+    } else {
+      DEBUG_OUT("LoraWriteJob", CYAN, "LoRa packet sent successfully :)\r\n");
     }
 
     // update remote status
