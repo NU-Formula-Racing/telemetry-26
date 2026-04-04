@@ -60,6 +60,8 @@ class Spi {
     return rx.at(1);
   }
 
+  void burstWrite(uint8_t reg, const uint8_t* data, size_t len) {}
+
  private:
   SPI_HandleTypeDef hspi_;
 

@@ -20,7 +20,7 @@ class Remote {
 
   void init() {
     logger_.init();
-    // wireless_.init();
+    wireless_.init();
     canBus_.init();
   }
 
@@ -28,7 +28,7 @@ class Remote {
     can::CanFrame frame{};
     while (canBus_.receive(frame, 0)) {
       logger_.logCanFrame(frame);
-      // wireless_.updateCanFrame(frame);
+      wireless_.updateCanFrame(frame);
     }
   }
 

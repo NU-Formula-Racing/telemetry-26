@@ -3,6 +3,8 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
+#include <cstdint>
+
 #include "lora.hpp"
 #include "rfm95_utils.hpp"
 #include "spi.hpp"
@@ -11,7 +13,7 @@
 
 namespace lora::rfm95 {
 
-class Rfm95 : public ILora {
+class Rfm95 : public ILoraDriver {
  public:
   Rfm95() = default;
   ~Rfm95() = default;
@@ -39,10 +41,8 @@ class Rfm95 : public ILora {
 
     // configure rfm95
     spi_.writeReg(REG_OP_MODE, OPMODE_SLEEP);
-    mode_ = OPMODE_SLEEP;
     // vTaskDelay(pdMS_TO_TICKS(10));
     spi_.writeReg(REG_OP_MODE, OPMODE_SLEEP | OPMODE_STDBY);
-    mode_ = OPMODE_SLEEP | OPMODE_STDBY;
 
     // set freq to 915MHz
     // Frf = (915 MHz * 2^19) / 32 MHz = 14991360 = 0xE4C000
@@ -51,11 +51,14 @@ class Rfm95 : public ILora {
     spi_.writeReg(REG_FRF_LSB, 0x00);
   }
 
-  // rfm needs to be in the correct mode before sending/receiving
-  // setMode(uint8_t mode) {}
+  void setOpmode(const uint8_t opmode) { spi_.writeReg(REG_OP_MODE, opmode); }
 
-  void send(const uint8_t* /*data*/, size_t /*len*/) override {
-    // TODO
+  void send(const uint8_t* data, size_t len) override {
+    const uint8_t opmode = spi_.readReg(REG_OP_MODE);
+    if ((opmode & 0x3) != OPMODE_TX && (opmode & 0x3) != OPMODE_FSTX) {
+      // TODO: not in tx mode, update status
+    }
+    //
   }
 
   void receive(uint8_t* /*buffer*/, size_t /*len*/) override {
@@ -78,7 +81,6 @@ class Rfm95 : public ILora {
   }
 
   spi::Spi spi_;
-  uint8_t mode_;
 };
 
 class LoraJob : public tasks::IJob {

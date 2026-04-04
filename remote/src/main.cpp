@@ -17,9 +17,10 @@
 #include "utils/utils.hpp"
 
 // TODO: //
-// CAN status msg
+// CAN status msg - SD status
+// RTC CAN msg
+// odometer - CAN, log, wireless
 // dont break when theres no SD card lol
-// delete context
 
 // not needed for EI MVP:
 // send lora
@@ -93,10 +94,11 @@ int main() {
   static can::CanBus can(canDriver);
 
   static lora::rfm95::Rfm95 rfm95;
+  static lora::Lora lora(rfm95);
 
   // instantiate apps
   static logger::Logger logger(sd, rtc);
-  static wireless::Wireless wireless(rfm95);
+  static wireless::Wireless wireless(lora);
   static remote::Remote remote(logger, wireless, can);
 
   // setup tasks
@@ -112,7 +114,7 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 500, sdWriteJob});
 
-  // static rfm95::LoraJob loraJob(rfm95);
+  // static wireless::LoraWriteJob loraWriteJob(wireless);
   // static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
   //     tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 100, loraWriteJob});
 
@@ -120,7 +122,7 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
-  static rfm95::LoraJob loraJob(rfm95);
+  static lora::rfm95::LoraJob loraJob(rfm95);
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
       tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
 
