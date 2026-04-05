@@ -25,6 +25,8 @@ class Rfm95 : public ILoraDriver {
   Rfm95& operator=(Rfm95&&) = delete;
 
   void init(LoraConfig config) override {
+    rxBuffer_.fill(0);
+
     setupSpi(config.boardType);
 
     // reset rfm95 module
@@ -95,12 +97,35 @@ class Rfm95 : public ILoraDriver {
     spi_.writeReg(REG_PAYLOAD_LENGTH, static_cast<uint8_t>(data.size()));
     spi_.burstWrite(REG_FIFO, data);
 
+    // clear TxDone flag
+    spi_.writeReg(REG_IRQ_FLAGS, 0x08);
+
     setOpmode(OPMODE_TX);
     return true;
   }
 
-  void receive(uint8_t* /*buffer*/, size_t /*len*/) override {
-    // TODO
+  std::span<const uint8_t> receive() override {
+    if (!packetWaiting()) {
+      return {};  // no packet waiting, return empty span
+    }
+
+    const uint8_t length = spi_.readReg(REG_RX_NB_BYTES);
+
+    const uint8_t rxAddr = spi_.readReg(REG_FIFO_RX_CURRENT_ADDR);
+    spi_.writeReg(REG_FIFO_ADDR_PTR, rxAddr);
+
+    spi_.burstRead(REG_FIFO, std::span<uint8_t>(rxBuffer_.data(), length));
+
+    // clear IRQ flags (RxDone, PayloadCrcError)
+    spi_.writeReg(REG_IRQ_FLAGS, 0xFF);
+
+    return std::span<const uint8_t>(rxBuffer_.data(), length);
+  }
+
+  bool packetWaiting() override {
+    uint8_t irqFlags = spi_.readReg(REG_IRQ_FLAGS);
+    // check RX_DONE bit (bit 6)
+    return (irqFlags & 0x40) != 0;
   }
 
   void printVersion() {
@@ -121,25 +146,9 @@ class Rfm95 : public ILoraDriver {
   void setOpmode(const uint8_t opmode) { spi_.writeReg(REG_OP_MODE, opmode); }
 
   spi::Spi spi_{};
-};
 
-class LoraJob : public tasks::IJob {
- public:
-  LoraJob(Rfm95& rfm95) : rfm95_(rfm95) {}
-  ~LoraJob() override = default;
-
-  // delete copy and move
-  LoraJob(const LoraJob&) = delete;
-  LoraJob& operator=(const LoraJob&) = delete;
-  LoraJob(LoraJob&&) = delete;
-  LoraJob& operator=(LoraJob&&) = delete;
-
-  void init() override { rfm95_.init(LoraConfig{.boardType = BoardType::BASE_STATION}); }
-
-  void run() override { rfm95_.printVersion(); }
-
- private:
-  Rfm95& rfm95_;
+  // buffer for storing received packets
+  std::array<uint8_t, Lora::RADIO_FIFO_SIZE> rxBuffer_{};
 };
 
 }  // namespace lora::rfm95

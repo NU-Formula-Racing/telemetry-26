@@ -10,29 +10,26 @@
 #include "app/wireless.hpp"
 #include "drivers/can/can_stm32.hpp"
 #include "drivers/lora/rfm95.hpp"
-#include "drivers/lora/spi.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd_stm32.hpp"
 #include "tasks/task.hpp"
 #include "utils/utils.hpp"
 
-// TODO: //
+// TODO //
 // CAN status msg - SD status
 // RTC CAN msg
 // odometer - CAN, log, wireless
 // dont break when theres no SD card lol
 // lora and rfm95 rx stuff
 // base-station rx app layer and main.cpp
+// protocol
 
-// not needed for EI MVP:
-// send lora
-// receive lora
-// write lora driver
+// not needed for 1st drive:
+// use DIOs + interrupts
 // read from sd
 // write CAN driver, make PR
 // change cmake to lint regardless of platform
 // phase out STM main.c and init code in drivers, comment out main.c in CMakeLists
-// write a heartbeat class and driver for gpios/leds
 
 extern "C" void BspInit(void);
 

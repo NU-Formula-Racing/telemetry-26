@@ -6,7 +6,7 @@
 
 #include "app/base_station.hpp"
 #include "drivers/lora/rfm95.hpp"
-#include "drivers/lora/spi.hpp"
+#include "lora.hpp"
 #include "tasks/task.hpp"
 #include "utils/utils.hpp"
 
@@ -40,22 +40,24 @@ int main() {
 
   // instantiate drivers & interfaces STATICALLY
   static lora::rfm95::Rfm95 rfm95;
+  static lora::Lora lora(rfm95);
 
   // instantiate apps
-  // static base::BaseStation baseStation(rfm95, usb);
+  static wireless::Wireless wireless(lora);
+  static base::BaseStation baseStation(wireless /*, usb*/);
 
   // setup tasks
   static BlinkJob blinkJob;
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
-  static lora::rfm95::LoraJob loraJob(rfm95);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
-      tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
+  // static ::LoraJob loraJob(rfm95);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
+  //     tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  taskMan.addTask(std::move(loraTask));
+  // taskMan.addTask(std::move(loraTask));
 
   taskMan.startAllTasks();
   vTaskStartScheduler();

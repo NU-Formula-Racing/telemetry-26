@@ -62,19 +62,32 @@ class Spi {
   }
 
   void burstWrite(uint8_t reg, std::span<const uint8_t> data) {
-    std::array<uint8_t, 1> tx = {static_cast<uint8_t>(0x80 | reg)};
+    const uint8_t addr = 0x80 | reg;
 
     HAL_GPIO_WritePin(csPort_, csPin_, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi_, tx.data(), tx.size(), HAL_MAX_DELAY);
-    HAL_SPI_Transmit(&hspi_, data.data(), data.size(), HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi_, &addr, 1, HAL_MAX_DELAY);
+    HAL_SPI_Transmit(&hspi_, data.data(), static_cast<uint16_t>(data.size()), HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(csPort_, csPin_, GPIO_PIN_SET);
+  }
+
+  void burstRead(uint8_t reg, std::span<uint8_t> data) {
+    uint8_t addr = 0x7F & reg;
+
+    HAL_GPIO_WritePin(csPort_, csPin_, GPIO_PIN_RESET);
+
+    HAL_SPI_Transmit(&hspi_, &addr, 1, HAL_MAX_DELAY);
+    // need to send some dummy bytes to read back data
+    HAL_SPI_Receive(&hspi_, data.data(), static_cast<uint16_t>(data.size()), HAL_MAX_DELAY);
+
     HAL_GPIO_WritePin(csPort_, csPin_, GPIO_PIN_SET);
   }
 
  private:
   SPI_HandleTypeDef hspi_;
 
-  GPIO_TypeDef* csPort_;
-  uint16_t csPin_;
+  // defaulting to remote settings for now
+  GPIO_TypeDef* csPort_ = GPIOA;  // default to GPIOA
+  uint16_t csPin_ = GPIO_PIN_4;
 };
 
 }  // namespace spi
