@@ -8,6 +8,7 @@
 namespace lora {
 
 enum class BoardType : uint8_t { BASE_STATION, REMOTE };
+enum class LoraMode : uint8_t { SLEEP, STANDBY, TX, RX_CONTINUOUS };
 
 // TODO: fill in other fields to make lib more configurable
 struct LoraConfig {
@@ -23,7 +24,9 @@ class ILoraDriver {
  public:
   virtual ~ILoraDriver() = default;
 
-  virtual void init(LoraConfig config) = 0;
+  virtual void init(const LoraConfig& config) = 0;
+
+  virtual void setMode(LoraMode mode) = 0;
 
   // true = sent, false = dropped
   virtual bool send(std::span<const uint8_t> data) = 0;
@@ -45,7 +48,9 @@ class Lora {
   Lora(Lora&&) = delete;
   Lora& operator=(Lora&&) = delete;
 
-  void init(LoraConfig config) { driver_.init(config); }
+  void init(const LoraConfig& config) { driver_.init(config); }
+
+  void setMode(const LoraMode& mode) { driver_.setMode(mode); }
 
   bool isTransmitting() { return driver_.isTransmitting(); }
 

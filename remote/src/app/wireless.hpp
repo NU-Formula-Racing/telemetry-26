@@ -76,8 +76,21 @@ class Wireless {
   }
 
   bool sendCanFrames() {
-    if (canDataBuffer_.empty() || lora_.isTransmitting()) {
+    // if (canDataBuffer_.empty() || lora_.isTransmitting()) {
+    //   return false;
+    // }
+
+    if (lora_.isTransmitting()) {
+      DEBUG_OUT("WIRELESS", YELLOW, "LoRa is currently transmitting, skipping send\r\n");
       return false;
+      // TODO: return a diff status, being busy is normal and fine and shouldnt be false
+    }
+
+    if (canDataBuffer_.empty()) {
+      std::string emptyMsg = "hello workld\r\n";
+      lora_.send(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(emptyMsg.data()),
+                                          emptyMsg.size()));
+      return true;
     }
 
     etl::vector<uint8_t, lora::Lora::RADIO_FIFO_SIZE> packet{};
@@ -114,6 +127,7 @@ class Wireless {
 
  private:
   lora::Lora& lora_;
+  // ProtocolHandler protocol_; // protocol fsm lives here
 
   // buffer for storing CAN frame data
   // broken into packets and sent to the LoRa radio periodically

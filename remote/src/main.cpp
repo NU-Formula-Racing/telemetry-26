@@ -115,7 +115,7 @@ int main() {
 
   static wireless::LoraWriteJob loraWriteJob(wireless);
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
-      tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 100, loraWriteJob});
+      tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 500, loraWriteJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(

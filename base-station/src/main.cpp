@@ -51,13 +51,13 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
-  // static ::LoraJob loraJob(rfm95);
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
-  //     tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
+  static base::LoraReadJob loraReadJob(baseStation);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraReadTask(
+      tasks::TaskConfig{"LoraReadTask", tasks::TaskPriority::STANDARD, 100, loraReadJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  // taskMan.addTask(std::move(loraTask));
+  taskMan.addTask(std::move(loraReadTask));
 
   taskMan.startAllTasks();
   vTaskStartScheduler();

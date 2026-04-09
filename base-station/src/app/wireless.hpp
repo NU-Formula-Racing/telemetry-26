@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lora/lora.hpp"
+#include "lora.hpp"
 
 namespace wireless {
 
@@ -14,12 +14,16 @@ class Wireless {
   Wireless(Wireless&&) = delete;
   Wireless& operator=(Wireless&&) = delete;
 
-  void init() { lora_.init(config_); }
+  void init() {
+    lora_.init(config_);
+    lora_.setMode(lora::LoraMode::RX_CONTINUOUS);
+  }
 
-  // receive() {}
+  std::span<const uint8_t> receive() { return lora_.receive(); }
 
  private:
   lora::Lora& lora_;
+  // ProtocolHandler protocol_; // protocol fsm lives here
 
   lora::LoraConfig config_{
       .boardType = lora::BoardType::BASE_STATION,

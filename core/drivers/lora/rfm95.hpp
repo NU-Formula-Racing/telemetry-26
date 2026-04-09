@@ -24,7 +24,7 @@ class Rfm95 : public ILoraDriver {
   Rfm95(Rfm95&&) = delete;
   Rfm95& operator=(Rfm95&&) = delete;
 
-  void init(LoraConfig config) override {
+  void init(const LoraConfig& config) override {
     rxBuffer_.fill(0);
 
     setupSpi(config.boardType);
@@ -47,6 +47,13 @@ class Rfm95 : public ILoraDriver {
     setOpmode(OPMODE_SLEEP | OPMODE_LONG_RANGE_MODE);
 
     setOpmode(OPMODE_STDBY | OPMODE_LONG_RANGE_MODE);
+
+    // use PA_BOOST pin for higher output power
+    // 1 000 1111 = 0x8F
+    // use PA_BOOST pin (0b1)
+    // MaxPower unused when PA_BOOST is used (0b000)
+    // OutputPower = 15 (max power 17dBm) (0b1111)
+    spi_.writeReg(REG_PA_CONFIG, 0x8F);
 
     // 1001 001 0 = 0x92
     // 500kHz bandwidth (0b1001)
@@ -76,6 +83,23 @@ class Rfm95 : public ILoraDriver {
     spi_.writeReg(REG_FRF_LSB, 0x00);
   }
 
+  void setMode(LoraMode mode) override {
+    switch (mode) {
+      case LoraMode::SLEEP:
+        setOpmode(OPMODE_SLEEP | OPMODE_LONG_RANGE_MODE);
+        break;
+      case LoraMode::STANDBY:
+        setOpmode(OPMODE_STDBY | OPMODE_LONG_RANGE_MODE);
+        break;
+      case LoraMode::TX:
+        setOpmode(OPMODE_TX | OPMODE_LONG_RANGE_MODE);
+        break;
+      case LoraMode::RX_CONTINUOUS:
+        setOpmode(OPMODE_RXCONTINUOUS | OPMODE_LONG_RANGE_MODE);
+        break;
+    }
+  }
+
   bool isTransmitting() override {
     const uint8_t currentMode = spi_.readReg(REG_OP_MODE) & 0x07;
     return (currentMode == OPMODE_TX);
@@ -89,7 +113,7 @@ class Rfm95 : public ILoraDriver {
     }
 
     // can only write to FIFO in STDBY mode
-    setOpmode(OPMODE_STDBY);
+    setMode(LoraMode::STANDBY);
 
     uint8_t txBaseAddr = spi_.readReg(REG_FIFO_TX_BASE_ADDR);
     spi_.writeReg(REG_FIFO_ADDR_PTR, txBaseAddr);
@@ -100,7 +124,7 @@ class Rfm95 : public ILoraDriver {
     // clear TxDone flag
     spi_.writeReg(REG_IRQ_FLAGS, 0x08);
 
-    setOpmode(OPMODE_TX);
+    setMode(LoraMode::TX);
     return true;
   }
 
