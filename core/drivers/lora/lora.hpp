@@ -25,6 +25,8 @@ struct RxPacket {
   int16_t rssi;
   float snr;
 
+  size_t size() const { return data.size(); }
+
   bool empty() const { return data.empty(); }
 
   std::string toString() const {

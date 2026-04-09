@@ -38,6 +38,7 @@ if(CMAKE_CROSSCOMPILING)
         -mfpu=fpv4-sp-d16
         -mfloat-abi=hard
         --specs=nano.specs 
+        -u _printf_float # to print floats to console
         -Wl,--gc-sections
         -Wl,--print-memory-usage
     )
