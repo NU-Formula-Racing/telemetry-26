@@ -20,6 +20,28 @@ struct LoraConfig {
   BoardType boardType;
 };
 
+struct RxPacket {
+  std::span<const uint8_t> data;
+  int16_t rssi;
+  float snr;
+
+  bool empty() const { return data.empty(); }
+
+  std::string toString() const {
+    std::string res = "rssi: " + std::to_string(rssi) + ", ";
+
+    res += "snr: " + std::to_string(snr) + ", ";
+
+    res += "data: [";
+    for (const auto& byte : data) {
+      res += std::to_string(byte) + " ";
+    }
+    res += "]";
+
+    return res;
+  }
+};
+
 class ILoraDriver {
  public:
   virtual ~ILoraDriver() = default;
@@ -31,7 +53,7 @@ class ILoraDriver {
   // true = sent, false = dropped
   virtual bool send(std::span<const uint8_t> data) = 0;
 
-  virtual std::span<const uint8_t> receive() = 0;
+  virtual RxPacket receive() = 0;
 
   virtual bool isTransmitting() = 0;
 
@@ -63,7 +85,7 @@ class Lora {
     return driver_.send(data);
   }
 
-  std::span<const uint8_t> receive() { return driver_.receive(); }
+  RxPacket receive() { return driver_.receive(); }
 
   // size (255B) is max FIFO depth of RFM95, can be adjusted for other radios
   static constexpr size_t RADIO_FIFO_SIZE = 255;

@@ -53,7 +53,7 @@ class Rfm95 : public ILoraDriver {
     // use PA_BOOST pin (0b1)
     // MaxPower unused when PA_BOOST is used (0b000)
     // OutputPower = 15 (max power 17dBm) (0b1111)
-    spi_.writeReg(REG_PA_CONFIG, 0x8F);
+    spi_.writeReg(REG_PA_CONFIG, 0x83);
 
     // 1001 001 0 = 0x92
     // 500kHz bandwidth (0b1001)
@@ -128,22 +128,32 @@ class Rfm95 : public ILoraDriver {
     return true;
   }
 
-  std::span<const uint8_t> receive() override {
+  RxPacket receive() override {
+    RxPacket p{};
+
     if (!packetWaiting()) {
-      return {};  // no packet waiting, return empty span
+      return p;  // no packet waiting, return empty RxPacket
     }
 
     const uint8_t length = spi_.readReg(REG_RX_NB_BYTES);
-
     const uint8_t rxAddr = spi_.readReg(REG_FIFO_RX_CURRENT_ADDR);
     spi_.writeReg(REG_FIFO_ADDR_PTR, rxAddr);
-
     spi_.burstRead(REG_FIFO, std::span<uint8_t>(rxBuffer_.data(), length));
+
+    p.data = std::span<const uint8_t>(rxBuffer_.data(), length);
+
+    auto rssi = spi_.readReg(REG_PKT_RSSI_VALUE);
+    // to calculate RSSI, add -157 (from datasheet pg 107)
+    p.rssi = static_cast<int16_t>(-157 + rssi);
+
+    auto snr = spi_.readReg(REG_PKT_SNR_VALUE);
+    // to calculate SNR, divide by 4 (from datasheet pg 107)
+    p.snr = static_cast<float>(snr) / 4.0F;
 
     // clear IRQ flags (RxDone, PayloadCrcError)
     spi_.writeReg(REG_IRQ_FLAGS, 0xFF);
 
-    return std::span<const uint8_t>(rxBuffer_.data(), length);
+    return p;
   }
 
   bool packetWaiting() override {

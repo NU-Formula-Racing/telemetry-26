@@ -28,8 +28,7 @@ class BaseStation {
     }
 
     // usb_.write(packet);
-    DEBUG_OUT("BaseStation", CYAN, "Received packet of size ", std::to_string(packet.size()),
-              " with contents: ", std::string(packet.begin(), packet.end()).c_str(), "\r\n");
+    DEBUG_OUT("BaseStation", CYAN, "Received packet: ", packet.toString(), "\r\n");
   }
 
  private:

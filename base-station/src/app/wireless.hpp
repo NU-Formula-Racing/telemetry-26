@@ -19,7 +19,7 @@ class Wireless {
     lora_.setMode(lora::LoraMode::RX_CONTINUOUS);
   }
 
-  std::span<const uint8_t> receive() { return lora_.receive(); }
+  lora::RxPacket receive() { return lora_.receive(); }
 
  private:
   lora::Lora& lora_;
