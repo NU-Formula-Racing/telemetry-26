@@ -63,7 +63,7 @@ class Stm32CanDriver : public ICanDriver {
     // populate header
     CAN_TxHeaderTypeDef txHeader;
     txHeader.IDE = (frame.idType == CanIdType::STANDARD) ? CAN_ID_STD : CAN_ID_EXT;
-    txHeader.StdId = frame.id;
+    txHeader.StdId = frame.id & STD_ID_MASK;
     // txHeader.ExtId = frame.id;  // HAL automatically uses ExtId if IDE is set to CAN_ID_EXT
     txHeader.RTR = CAN_RTR_DATA;  // only supporting data frames
     txHeader.DLC = frame.dlc;
@@ -85,7 +85,8 @@ class Stm32CanDriver : public ICanDriver {
       // populate frame
       frame.timestamp = HAL_GetTick();
       frame.idType = (rxHeader.IDE == CAN_ID_STD) ? CanIdType::STANDARD : CanIdType::EXTENDED;
-      frame.id = (rxHeader.IDE == CAN_ID_STD) ? rxHeader.StdId : rxHeader.ExtId;
+      frame.id = (rxHeader.IDE == CAN_ID_STD) ? rxHeader.StdId & STD_ID_MASK
+                                              : rxHeader.ExtId & EXT_ID_MASK;
       frame.dlc = rxHeader.DLC;
 
       if (rxCallback_ != nullptr) {

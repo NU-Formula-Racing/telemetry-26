@@ -12,7 +12,6 @@ enum class LoraMode : uint8_t { SLEEP, STANDBY, TX, RX_CONTINUOUS };
 
 // TODO: fill in other fields to make lib more configurable
 struct LoraConfig {
-  // mode (might need to be configurable so we can change between sleep, standby, tx, rx)
   // frequency = 915MHz
   // bandwidth
   // SF

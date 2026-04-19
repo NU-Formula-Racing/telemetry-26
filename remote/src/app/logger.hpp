@@ -7,7 +7,6 @@
 #include "drivers/rtc/rtc_utils.hpp"
 #include "drivers/sd/sd.hpp"
 #include "tasks/job.hpp"
-#include "utils/utils.hpp"
 
 namespace logger {
 
@@ -46,7 +45,7 @@ class Logger {
     sdCard_.openRollingLogFile(rtc_.getDate().toString());
 
     // log header
-    LogHeader header;
+    LogHeader header{};
     header.version = version_;
     header.startDate = rtc_.getDate();
     header.startTime = rtc_.getTime();

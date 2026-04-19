@@ -10,6 +10,9 @@
 
 namespace can {
 
+constexpr uint32_t STD_ID_MASK = 0x7FF;
+constexpr uint32_t EXT_ID_MASK = 0x1FFFFFFF;
+
 enum class CanBaudRate : uint8_t { BAUD_125K, BAUD_250K, BAUD_500K, BAUD_1M };
 enum class CanIdType : uint8_t { STANDARD = 0x00, EXTENDED = 0x04 };
 enum class CanEndianess : uint8_t { LITTLE, BIG };  // TODO

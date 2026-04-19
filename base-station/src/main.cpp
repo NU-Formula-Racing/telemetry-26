@@ -41,6 +41,7 @@ int main() {
   // instantiate drivers & interfaces STATICALLY
   static lora::rfm95::Rfm95 rfm95;
   static lora::Lora lora(rfm95);
+  // static usb::Usb usb;
 
   // instantiate apps
   static wireless::Wireless wireless(lora);

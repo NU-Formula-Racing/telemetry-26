@@ -16,18 +16,16 @@
 #include "utils/utils.hpp"
 
 // TODO //
+// dont break when theres no SD card lol
+// protocol
+// usb class
+
+// not needed for 1st drive:
 // CAN status msg - SD status
 // RTC CAN msg
 // odometer - CAN, log, wireless
-// dont break when theres no SD card lol
-// lora and rfm95 rx stuff
-// base-station rx app layer and main.cpp
-// protocol
-
-// not needed for 1st drive:
 // use DIOs + interrupts
 // read from sd
-// write CAN driver, make PR
 // change cmake to lint regardless of platform
 // phase out STM main.c and init code in drivers, comment out main.c in CMakeLists
 

@@ -10,6 +10,8 @@
 namespace sd {
 
 enum class SdResult : uint8_t { OK, ERROR, BUSY, TIMEOUT };
+// enum class SdStatus : uint8_t { OK, NOT_DETECTED, FILESYSTEM_ERROR, CARD_FULL, SDIO_COMMS_ERROR
+// };
 
 enum class SdFileMode : uint8_t {
   READ = 0x01,

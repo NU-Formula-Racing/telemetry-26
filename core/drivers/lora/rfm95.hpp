@@ -53,7 +53,7 @@ class Rfm95 : public ILoraDriver {
     // use PA_BOOST pin (0b1)
     // MaxPower unused when PA_BOOST is used (0b000)
     // OutputPower = 15 (max power 17dBm) (0b1111)
-    spi_.writeReg(REG_PA_CONFIG, 0x83);
+    spi_.writeReg(REG_PA_CONFIG, 0x8F);
 
     // 1001 001 0 = 0x92
     // 500kHz bandwidth (0b1001)
@@ -179,7 +179,7 @@ class Rfm95 : public ILoraDriver {
 
   void setOpmode(const uint8_t opmode) { spi_.writeReg(REG_OP_MODE, opmode); }
 
-  spi::Spi spi_{};
+  spi::Spi spi_;
 
   // buffer for storing received packets
   std::array<uint8_t, Lora::RADIO_FIFO_SIZE> rxBuffer_{};
