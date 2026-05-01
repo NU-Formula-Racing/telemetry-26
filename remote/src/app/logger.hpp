@@ -2,10 +2,12 @@
 
 #include <cstdint>
 
+#include "can_msgs.hpp"
 #include "drivers/can/can.hpp"
 #include "drivers/rtc/rtc.hpp"
 #include "drivers/rtc/rtc_utils.hpp"
 #include "drivers/sd/sd.hpp"
+#include "odometer.hpp"
 #include "tasks/job.hpp"
 
 namespace logger {
@@ -42,6 +44,16 @@ class Logger {
     // setup sd card
     sdCard_.init();
     sdCard_.registerTimeProvider(provideFatTime);
+
+    // recover miles driven from most recent log file
+    std::string mostRecentDir = sdCard_.getMostRecentValidDir();
+    std::string lastLog{};
+    if (!mostRecentDir.empty()) {
+      lastLog = sdCard_.getLastLogFile(mostRecentDir);
+    }
+    odometer_.setMilesDriven(recoverMilesDriven(lastLog));
+
+    // open new log file for this session
     sdCard_.openRollingLogFile(rtc_.getDate().toString());
 
     // log header
@@ -73,6 +85,40 @@ class Logger {
                                            sizeof(can::CanFrame)));
   }
 
+  float recoverMilesDriven(const std::string& lastLog) {
+    float milesRecovered = 0.0F;
+    if (!lastLog.empty()) {
+      sd::SdResult res =
+          sdCard_.openFile(lastLog, sd::SdFileMode::READ | sd::SdFileMode::OPEN_EXISTING);
+      if (res == sd::SdResult::OK) {
+        uint32_t fileSize = sdCard_.getFileSize(lastLog);
+        uint32_t chunkSize = std::min<uint32_t>(fileSize, 2048U);
+
+        sdCard_.seek(fileSize - chunkSize);  // seek to last chunk of file
+
+        // read last chunk of file
+        etl::vector<uint8_t, 2048> lastFrames{};
+        sdCard_.read(std::span(lastFrames));
+
+        // search backwards for last odometer CanFrame
+        for (int i = lastFrames.size() - sizeof(can::CanFrame); i >= 0; i--) {
+          std::array<uint8_t, sizeof(can::CanFrame)> chunk{};
+          std::copy_n(lastFrames.begin() + i, sizeof(can::CanFrame), chunk.begin());
+          auto f = std::bit_cast<can::CanFrame>(chunk);
+
+          if (f.id == remote::canmsgs::TELEMETRY_ODOMETER_ID) {
+            //  found the odometer frame, extract miles driven
+            //  TelemetryOdometerMsg msg{};
+            //  milesRecovered = msg.decode(f).milesDriven;
+
+            break;
+          }
+        }
+      }
+    }
+    return milesRecovered;
+  }
+
  private:
   static uint32_t provideFatTime() {
     const rtc::RtcTime time = activeRtc_->getTime();
@@ -84,6 +130,7 @@ class Logger {
 
   sd::SdCard& sdCard_;
   rtc::Rtc& rtc_;
+  odometer::Odometer odometer_;
 
   const std::array<uint8_t, 9> version_ = {'N', 'F', 'R', '2', '6', '0', '0', '0', '\n'};
 

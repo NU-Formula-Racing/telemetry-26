@@ -1,5 +1,8 @@
 add_executable(remote_tests
-               test.cpp
+               odometer_test.cpp
+               # wireless_test.cpp
+               # logger_test.cpp
+               # remote_test.cpp
               )
 
 target_include_directories(remote_tests PRIVATE 

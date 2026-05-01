@@ -52,6 +52,7 @@ class ISdDriver {
   virtual SdResult openFile(const std::string& filename, uint8_t mode) = 0;
   // read/write blocks of data
   virtual SdResult write(std::span<const uint8_t> data) = 0;
+
   virtual SdResult read(std::span<uint8_t> data) = 0;
 
   // manually flush internal buffers to ensure data is written to the card
@@ -61,11 +62,15 @@ class ISdDriver {
   // files/directories
   virtual void registerTimeProvider(TimeProviderCb cb) = 0;
 
-  // TODO: error handling
+  virtual uint32_t getFileSize(const std::string& filename) = 0;
+
+  virtual SdResult seek(const uint32_t position) = 0;
+
+  static constexpr size_t MAX_NUM_DIRS = 50;
+  virtual etl::vector<std::string, MAX_NUM_DIRS> listDirectories(const std::string& path) = 0;
 };
 
 // SD manager class
-// TODO: read, statuses
 class SdCard {
  public:
   SdCard(ISdDriver& driver) : driver_(driver) {};
@@ -115,6 +120,21 @@ class SdCard {
     return driver_.openFile(path, mode);
   }
 
+  std::string getLastLogFile(const std::string& dateDir) {
+    uint32_t idx = 0;
+    std::string lastPath{};
+
+    while (idx < 10000) {
+      std::string path = dateDir + "/" + formatFilename("log_", idx, ".nfr");
+      if (!driver_.fileExists(path)) {
+        break;
+      }
+      lastPath = path;
+      idx++;
+    }
+    return lastPath;
+  }
+
   // write some raw data to the internal SD buffer
   // data is only written to the card with handleFlush() and driver_.flush()
   // TODO: return a status
@@ -147,7 +167,11 @@ class SdCard {
     }
   }
 
-  // TODO: read
+  SdResult read(std::span<uint8_t> data) { return driver_.read(data); }
+
+  uint32_t getFileSize(const std::string& filename) { return driver_.getFileSize(filename); }
+
+  SdResult seek(const uint32_t position) { return driver_.seek(position); }
 
   void handleFlush() {
     // wait for signal that buffer is full
@@ -160,6 +184,21 @@ class SdCard {
         flushBuffer_ = nullptr;  // buffer is now free for use again
       }
     }
+  }
+
+  std::string getMostRecentValidDir() {
+    auto dirs = driver_.listDirectories("/");
+
+    // sort so most recent directories are first
+    std::sort(dirs.begin(), dirs.end(), std::greater<std::string>());
+
+    for (const auto& dir : dirs) {
+      std::string lastLog = getLastLogFile(dir);
+      if (!lastLog.empty()) {
+        return dir;
+      }
+    }
+    return "";
   }
 
   void registerTimeProvider(TimeProviderCb cb) { driver_.registerTimeProvider(cb); }

@@ -1,8 +1,11 @@
 #pragma once
 #include <cstdint>
 #include <span>
+#include <string>
 
 #include "Middlewares/Third_Party/FatFs/src/ff.h"
+#include "Middlewares/Third_Party/FatFs/src/integer.h"
+#include "etl/vector.h"
 #include "sd.hpp"
 #include "utils/utils.hpp"
 
@@ -13,13 +16,12 @@ extern "C" {
 namespace sd {
 
 // STM32-specific SD driver implementation using FATFS and HAL libraries
-// TODO: error handling, isDetected(), read()
 class Stm32SdDriver : public ISdDriver {
  public:
   Stm32SdDriver() = default;
   ~Stm32SdDriver() override = default;
 
-  virtual SdResult init() override {
+  SdResult init() override {
     result_ = f_mount(&sdFatFs_, (TCHAR const*)"0:", 1);
 
     if (result_ != FR_OK) {
@@ -33,9 +35,9 @@ class Stm32SdDriver : public ISdDriver {
   }
 
   // TODO
-  virtual bool isDetected() override { return true; }
+  bool isDetected() override { return true; }
 
-  virtual SdResult mkdir(const std::string& dirname) override {
+  SdResult mkdir(const std::string& dirname) override {
     result_ = f_mkdir(dirname.data());
 
     if (result_ == FR_OK || result_ == FR_EXIST) {
@@ -44,13 +46,13 @@ class Stm32SdDriver : public ISdDriver {
     return SdResult::ERROR;
   }
 
-  virtual bool fileExists(const std::string& filename) override {
+  bool fileExists(const std::string& filename) override {
     FILINFO fno;
     result_ = f_stat(filename.data(), &fno);
     return (result_ == FR_OK);
   }
 
-  virtual SdResult openFile(const std::string& filename, uint8_t mode) override {
+  SdResult openFile(const std::string& filename, uint8_t mode) override {
     result_ = f_open(&file_, filename.data(), mode);
 
     if (result_ != FR_OK) {
@@ -63,23 +65,59 @@ class Stm32SdDriver : public ISdDriver {
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
-  virtual SdResult write(std::span<const uint8_t> data) override {
+  SdResult write(std::span<const uint8_t> data) override {
     result_ = f_write(&file_, data.data(), static_cast<UINT>(data.size()), &bytesWritten_);
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
-  // TODO
-  virtual SdResult read(std::span<uint8_t> data) override {
-    static_cast<void>(data);  // avoid unused parameter warning, remove when implemented
-    return SdResult::ERROR;
+  SdResult read(std::span<uint8_t> data) override {
+    UINT bytesRead{};
+    result_ = f_read(&file_, data.data(), static_cast<UINT>(data.size()), &bytesRead);
+    return (result_ == FR_OK && bytesRead == data.size()) ? SdResult::OK : SdResult::ERROR;
   }
 
-  virtual SdResult flush() override {
+  SdResult flush() override {
     result_ = f_sync(&file_);
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
-  virtual void registerTimeProvider(TimeProviderCb cb) override { timeProvider_ = cb; }
+  uint32_t getFileSize(const std::string& filename) override {
+    FILINFO fno;
+    result_ = f_stat(filename.data(), &fno);
+    if (result_ != FR_OK) {
+      return 0;
+    }
+    return fno.fsize;
+  }
+
+  virtual SdResult seek(const uint32_t position) override {
+    result_ = f_lseek(&file_, position);
+    return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
+  }
+
+  etl::vector<std::string, MAX_NUM_DIRS> listDirectories(const std::string& path) override {
+    etl::vector<std::string, MAX_NUM_DIRS> directories{};
+    DIR dir;
+    FILINFO fno;
+
+    std::string targetPath = path.empty() ? "/" : path;
+
+    result_ = f_opendir(&dir, targetPath.c_str());
+    if (result_ == FR_OK) {
+      while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0] != '\0') {
+        if ((fno.fattrib & AM_DIR) != 0) {
+          std::string_view name(fno.fname);
+          if (name != "." && name != "..") {
+            directories.push_back(std::string(name));
+          }
+        }
+      }
+      f_closedir(&dir);
+    }
+    return directories;
+  }
+
+  void registerTimeProvider(TimeProviderCb cb) override { timeProvider_ = cb; }
 
   // static helper that FATFS global C function will call
   static uint32_t getFatTime() {

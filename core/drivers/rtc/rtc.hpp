@@ -37,9 +37,7 @@ struct RtcDate {
   uint8_t day;
   uint8_t year;  // last 2 digits of year (ie. 0-99, representing 2000-2099)
 
-  std::string toString() const {
-    return std::to_string(month) + "-" + std::to_string(day) + "-" + std::to_string(year);
-  }
+  std::string toString() const { return std::format("{:02}-{:02}-{:02}", year, month, day); }
 };
 #pragma pack(pop)
 

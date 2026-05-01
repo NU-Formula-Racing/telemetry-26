@@ -6,7 +6,6 @@
 
 #include "app/logger.hpp"
 #include "app/remote.hpp"
-#include "app/status.hpp"
 #include "app/wireless.hpp"
 #include "drivers/can/can_stm32.hpp"
 #include "drivers/lora/rfm95.hpp"
@@ -19,15 +18,16 @@
 // dont break when theres no SD card lol
 // protocol
 // usb class
-
-// not needed for 1st drive:
 // CAN status msg - SD status
 // RTC CAN msg
 // odometer - CAN, log, wireless
+
+// someday:
 // use DIOs + interrupts
 // read from sd
 // change cmake to lint regardless of platform
 // phase out STM main.c and init code in drivers, comment out main.c in CMakeLists
+// std::source_location instead of __FILE__ and __LINE__
 
 extern "C" void BspInit(void);
 
@@ -96,7 +96,8 @@ int main() {
   // instantiate apps
   static logger::Logger logger(sd, rtc);
   static wireless::Wireless wireless(lora);
-  static remote::Remote remote(logger, wireless, can);
+  // static remote::status status;
+  static remote::Remote remote(logger, wireless, /*status, */ can);
 
   // setup tasks
   static /*remote::*/ BlinkJob blinkJob;
@@ -113,15 +114,16 @@ int main() {
 
   static wireless::LoraWriteJob loraWriteJob(wireless);
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
-      tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 500, loraWriteJob});
+      tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 200, loraWriteJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
-  // static lora::rfm95::LoraJob loraJob(rfm95);
-  // static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraTask(
-  //     tasks::TaskConfig{"LoraTask", tasks::TaskPriority::STANDARD, 1000, loraJob});
+  // static StatusCanTxJob statusCanTxJob(remote);
+  // static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE>
+  // statusCanTxTask(tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1000,
+  // statusCanTxJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
@@ -129,7 +131,7 @@ int main() {
   taskMan.addTask(std::move(sdWriteTask));
   taskMan.addTask(std::move(loraWriteTask));
   taskMan.addTask(std::move(rtcPrintTask));
-  // taskMan.addTask(std::move(loraTask));
+  // taskMan.addTask(std::move(statusCanTxTask));
   taskMan.startAllTasks();
 
   vTaskStartScheduler();
