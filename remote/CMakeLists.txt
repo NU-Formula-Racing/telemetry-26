@@ -57,6 +57,17 @@ else()
     
     # only lint when building natively
     set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+
+    enable_testing()
+    
+    # disable linter for GoogleTest
+    set(TEMP_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY})
+    set(CMAKE_CXX_CLANG_TIDY "")
+    add_subdirectory(../third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
+    set(CMAKE_CXX_CLANG_TIDY ${TEMP_CLANG_TIDY})
+
+    include(GoogleTest)
+    include(CTest)
 endif()
 
 # add shared directories
@@ -100,16 +111,5 @@ if(CMAKE_CROSSCOMPILING)
     )
 
 else()
-    enable_testing()
-    
-    # disable linter for GoogleTest
-    set(TEMP_CLANG_TIDY ${CMAKE_CXX_CLANG_TIDY})
-    set(CMAKE_CXX_CLANG_TIDY "")
-    add_subdirectory(../third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
-    set(CMAKE_CXX_CLANG_TIDY ${TEMP_CLANG_TIDY})
-
-    include(GoogleTest)
-    include(CTest)
-
     add_subdirectory(tests)
 endif()

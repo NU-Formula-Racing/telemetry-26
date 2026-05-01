@@ -8,60 +8,14 @@
 #include <format>
 #include <string>
 
+#include "can_types.hpp"
+
 namespace can {
-
-constexpr uint32_t STD_ID_MASK = 0x7FF;
-constexpr uint32_t EXT_ID_MASK = 0x1FFFFFFF;
-
-enum class CanBaudRate : uint8_t { BAUD_125K, BAUD_250K, BAUD_500K, BAUD_1M };
-enum class CanIdType : uint8_t { STANDARD = 0x00, EXTENDED = 0x04 };
-enum class CanEndianness : uint8_t { LITTLE, BIG };
 
 enum class CanStatus : uint8_t { OK, ERROR };
 
-#pragma pack(push, 1)
-// raw can frame
-struct CanFrame {
-  uint32_t timestamp;           // in ms, HAL_GetTick()
-  uint32_t id;                  // 11 bit standard ID or 29 bit extended ID
-  uint8_t dlc;                  // data length in bytes (0-8)
-  CanIdType idType;             // standard or extended
-  std::array<uint8_t, 8> data;  // data payload (0-8 bytes)
-
-  std::string dataToString() const {
-    return std::format("{:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}", data.at(0),
-                       data.at(1), data.at(2), data.at(3), data.at(4), data.at(5), data.at(6),
-                       data.at(7));
-  }
-};
-#pragma pack(pop)
-
 // callback type for RX interrupt
 using CanRxCallback = void (*)(const CanFrame& frame);
-
-// for decoding signals from raw CAN frames
-struct CanSignalConfig {
-  uint8_t startBit;
-  uint8_t length;  // in bits
-  bool isSigned;
-  float scale;
-  float offset;
-  CanEndianness endianness;
-};
-
-template <typename T>
-struct CanSignal {
- public:
-  CanSignal(const CanSignalConfig& config) : config(config) {}
-
-  CanSignalConfig config;
-  T value = 0;
-};
-
-struct CanMessageConfig {
-  uint32_t id;
-  CanIdType idType;
-};
 
 class ICanDriver {
  public:
@@ -74,7 +28,6 @@ class ICanDriver {
   virtual void registerRxCallback(CanRxCallback cb) = 0;
 };
 
-// TODO: decode/encode messages, abstract raw frame from CanBus layer, store and apply DBC info,
 class CanBus {
  public:
   CanBus(ICanDriver& driver) : driver_(driver) {

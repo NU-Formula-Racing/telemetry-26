@@ -1,6 +1,7 @@
 add_library(core_can INTERFACE
             # list all can files
             can.hpp
+            can_types.hpp
             # can_stm32.hpp
             )
 
@@ -15,6 +16,17 @@ if (CMAKE_CROSSCOMPILING)
     target_link_libraries(core_can INTERFACE 
                          platform_bsp
                          )
+else()
+    add_executable(can_test
+                   can_test.cpp
+                  )
+    target_link_libraries(can_test PRIVATE
+                          core_can
+                          gtest 
+                          gtest_main
+                          )
+    include(GoogleTest)
+    gtest_discover_tests(can_test)
 endif()
 
 set_target_properties(core_can PROPERTIES LINKER_LANGUAGE CXX)

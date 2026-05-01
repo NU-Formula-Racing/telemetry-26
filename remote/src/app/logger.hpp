@@ -106,11 +106,10 @@ class Logger {
           std::copy_n(lastFrames.begin() + i, sizeof(can::CanFrame), chunk.begin());
           auto f = std::bit_cast<can::CanFrame>(chunk);
 
-          if (f.id == remote::canmsgs::TELEMETRY_ODOMETER_ID) {
+          if (f.id == remote::canmsgs::TelemetryOdometer::ID) {
             //  found the odometer frame, extract miles driven
             //  TelemetryOdometerMsg msg{};
             //  milesRecovered = msg.decode(f).milesDriven;
-
             break;
           }
         }
@@ -118,6 +117,12 @@ class Logger {
     }
     return milesRecovered;
   }
+
+  void updateOdometer(const int16_t motorRpm, const uint32_t timestamp) {
+    odometer_.updateMilesDriven(motorRpm, timestamp);
+  }
+
+  float getMilesDriven() const { return odometer_.getMilesDriven(); }
 
  private:
   static uint32_t provideFatTime() {

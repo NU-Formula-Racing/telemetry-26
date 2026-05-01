@@ -1,5 +1,6 @@
 #pragma once
 
+#include "can_msgs.hpp"
 #include "drivers/can/can.hpp"
 #include "logger.hpp"
 #include "wireless.hpp"
@@ -31,39 +32,20 @@ class Remote {
     while (canBus_.receive(frame, 0)) {
       logger_.logCanFrame(frame);
       wireless_.updateCanFrame(frame);
+      if (frame.id == remote::canmsgs::RearInverterMotorStatus::ID) {
+        auto rearInverterMotorStatus = can::decode<remote::canmsgs::RearInverterMotorStatus>(frame);
+        logger_.updateOdometer(rearInverterMotorStatus.rpm, frame.timestamp);
+      }
     }
   }
 
-  // updateCanTx() {
-  // populate TelemetryRtcTime CAN msg
-  // remote::can::TelemetryRtcTime telemetryRtcTime{};
-  // telemetryRtcTime.hour = rtc_.getHour();
-  // telemetryRtcTime.minute = rtc_.getMinute();
-  // telemetryRtcTime.second = rtc_.getSecond();
-  // telemetryRtcTime.subsecond = rtc_.getSubsecond();
-  //
-  // populate TelemetryRtcDate CAN msg
-  // remote::can::TelemetryRtcDate telemetryRtcDate{};
-  // telemetryRtcDate.year = rtc_.getYear();
-  // telemetryRtcDate.month = rtc_.getMonth();
-  // telemetryRtcDate.day = rtc_.getDay();
-  // telemetryRtcDate.weekday = rtc_.getWeekday();
-  //
-  // populate TelemetryOdometer CAN msg
-  // remote::can::TelemetryOdometer telemetryOdometer{};
-  // telemetryOdometer.milesDriven = logger_.getMilesDriven();
-  //
-  // populate Telemetry_Status CAN msg
-  // remote::can::TelemetryStatus telemetryStatus{};
-  // telemetryStatus.logFile = logger_.getLogFileName();
-  // telemetryStatus.loggingStatus = logger_.getStatus();
-  // telemetryStatus.wirelessStatus = wireless_.getStatus();
-  //
-  // make a vector and make all these canmsgs part of a variant and then i can loop thru and send
-  // all for (const auto& msg : canMessages_) {
-  //   CanFrame encodedMsg = msg.encode();
-  //   canBus_.send(encodedMsg);}
-  //}
+  void sendOdometer() {
+    remote::canmsgs::TelemetryOdometer telemetryOdometer{};
+    telemetryOdometer.milesDriven = logger_.getMilesDriven();
+
+    can::CanFrame frame = can::encode(telemetryOdometer);
+    canBus_.send(frame);
+  }
 
  private:
   logger::Logger& logger_;
@@ -85,6 +67,25 @@ class ProcessCanJob : public tasks::IJob {
   void init() override { remote_.init(); }
 
   void run() override { remote_.processCan(); }
+
+ private:
+  Remote& remote_;
+};
+
+class OdometerCanTxJob : public tasks::IJob {
+ public:
+  OdometerCanTxJob(Remote& remote) : remote_(remote) {}
+  ~OdometerCanTxJob() override = default;
+
+  // delete copy and move
+  OdometerCanTxJob(const OdometerCanTxJob&) = delete;
+  OdometerCanTxJob& operator=(const OdometerCanTxJob&) = delete;
+  OdometerCanTxJob(OdometerCanTxJob&&) = delete;
+  OdometerCanTxJob& operator=(OdometerCanTxJob&&) = delete;
+
+  void init() override {}
+
+  void run() override { remote_.sendOdometer(); }
 
  private:
   Remote& remote_;
