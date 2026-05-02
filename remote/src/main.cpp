@@ -117,7 +117,7 @@ int main() {
       tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 200, loraWriteJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcPrintTask(
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> rtcPrintTask(
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
   static remote::OdometerCanTxJob odometerCanTxJob(remote);
