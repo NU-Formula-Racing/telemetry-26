@@ -38,8 +38,8 @@ class Logger {
     rtc_.init();
     constexpr rtc::RtcDate compileDate = rtc::utils::parseCompilerDate(__DATE__);
     constexpr rtc::RtcTime compileTime = rtc::utils::parseCompilerTime(__TIME__);
-    rtc_.setDate(compileDate, 0xAAAA);
-    rtc_.setTime(compileTime, 0xAAAA);
+    rtc_.setDate(compileDate, 0xAAAB);
+    rtc_.setTime(compileTime, 0xAAAB);
 
     // setup sd card
     sdCard_.init();
@@ -51,7 +51,7 @@ class Logger {
     if (!mostRecentDir.empty()) {
       lastLog = sdCard_.getLastLogFile(mostRecentDir);
     }
-    odometer_.setMilesDriven(recoverMilesDriven(lastLog));
+    odometer_.init(recoverMilesDriven(lastLog));
 
     // open new log file for this session
     sdCard_.openRollingLogFile(rtc_.getDate().toString());
@@ -91,13 +91,14 @@ class Logger {
       sd::SdResult res =
           sdCard_.openFile(lastLog, sd::SdFileMode::READ | sd::SdFileMode::OPEN_EXISTING);
       if (res == sd::SdResult::OK) {
-        uint32_t fileSize = sdCard_.getFileSize(lastLog);
+        uint32_t fileSize = sdCard_.getOpenFileSize();
         uint32_t chunkSize = std::min<uint32_t>(fileSize, 2048U);
 
         sdCard_.seek(fileSize - chunkSize);  // seek to last chunk of file
 
         // read last chunk of file
         etl::vector<uint8_t, 2048> lastFrames{};
+        lastFrames.resize(chunkSize);
         sdCard_.read(std::span(lastFrames));
 
         // search backwards for last odometer CanFrame
@@ -108,12 +109,13 @@ class Logger {
 
           if (f.id == remote::canmsgs::TelemetryOdometer::ID) {
             //  found the odometer frame, extract miles driven
-            //  TelemetryOdometerMsg msg{};
-            //  milesRecovered = msg.decode(f).milesDriven;
+            auto odom = can::decode<remote::canmsgs::TelemetryOdometer>(f);
+            milesRecovered = odom.milesDriven;
             break;
           }
         }
       }
+      sdCard_.closeFile();  // this might do literally nothing
     }
     return milesRecovered;
   }

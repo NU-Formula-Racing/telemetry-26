@@ -50,6 +50,9 @@ class ISdDriver {
   // open a file
   // filename must follow 8.3 format unless LFN is enabled
   virtual SdResult openFile(const std::string& filename, uint8_t mode) = 0;
+
+  virtual SdResult closeFile() = 0;
+
   // read/write blocks of data
   virtual SdResult write(std::span<const uint8_t> data) = 0;
 
@@ -63,6 +66,8 @@ class ISdDriver {
   virtual void registerTimeProvider(TimeProviderCb cb) = 0;
 
   virtual uint32_t getFileSize(const std::string& filename) = 0;
+
+  virtual uint32_t getOpenFileSize() = 0;
 
   virtual SdResult seek(const uint32_t position) = 0;
 
@@ -93,6 +98,8 @@ class SdCard {
   SdResult openFile(const std::string& filename, uint8_t mode) {
     return driver_.openFile(filename, mode);
   }
+
+  sd::SdResult closeFile() { return driver_.closeFile(); }
 
   // open a rolling log file with incremented name in format (ie. log_0000.nfr, log_0001.nfr, etc.)
   SdResult openRollingLogFile(const std::string& dateDir) {
@@ -170,6 +177,8 @@ class SdCard {
   SdResult read(std::span<uint8_t> data) { return driver_.read(data); }
 
   uint32_t getFileSize(const std::string& filename) { return driver_.getFileSize(filename); }
+
+  uint32_t getOpenFileSize() { return driver_.getOpenFileSize(); }
 
   SdResult seek(const uint32_t position) { return driver_.seek(position); }
 

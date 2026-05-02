@@ -65,6 +65,11 @@ class Stm32SdDriver : public ISdDriver {
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
   }
 
+  SdResult closeFile() override {
+    result_ = f_close(&file_);
+    return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
+  }
+
   SdResult write(std::span<const uint8_t> data) override {
     result_ = f_write(&file_, data.data(), static_cast<UINT>(data.size()), &bytesWritten_);
     return (result_ == FR_OK) ? SdResult::OK : SdResult::ERROR;
@@ -89,6 +94,8 @@ class Stm32SdDriver : public ISdDriver {
     }
     return fno.fsize;
   }
+
+  uint32_t getOpenFileSize() override { return f_size(&file_); }
 
   virtual SdResult seek(const uint32_t position) override {
     result_ = f_lseek(&file_, position);

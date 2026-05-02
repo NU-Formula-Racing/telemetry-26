@@ -117,8 +117,8 @@ class Wireless {
     }
 
     if (!packet.empty()) {
-      DEBUG_OUT("WIRELESS", GREEN, "Sending packet of size ", std::to_string(packet.size()),
-                "\r\n");
+      // DEBUG_OUT("WIRELESS", GREEN, "Sending packet of size ", std::to_string(packet.size()),
+      //           "\r\n");
       return lora_.send(std::span(packet.data(), packet.size()));
     }
 
@@ -163,7 +163,7 @@ class LoraWriteJob : public tasks::IJob {
     if (!res) {
       ERROR("LoraWriteJob", "LoRa packet dropped or empty :(\r\n");
     } else {
-      DEBUG_OUT("LoraWriteJob", CYAN, "LoRa packet sent successfully :)\r\n");
+      // DEBUG_OUT("LoraWriteJob", CYAN, "LoRa packet sent successfully :)\r\n");
     }
 
     // update remote status

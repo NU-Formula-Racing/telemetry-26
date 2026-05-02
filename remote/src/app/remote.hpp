@@ -3,6 +3,7 @@
 #include "can_msgs.hpp"
 #include "drivers/can/can.hpp"
 #include "logger.hpp"
+#include "utils/utils.hpp"
 #include "wireless.hpp"
 
 namespace remote {
@@ -23,8 +24,6 @@ class Remote {
     logger_.init();
     wireless_.init();
     canBus_.init();
-    // float milesDriven = logger_.read(); // read miles driven from sd or nvm
-    // odometer_.init(milesDriven);
   }
 
   void processCan() {
@@ -43,7 +42,14 @@ class Remote {
     remote::canmsgs::TelemetryOdometer telemetryOdometer{};
     telemetryOdometer.milesDriven = logger_.getMilesDriven();
 
+    DEBUG_OUT("Remote", GREEN,
+              "Sending odometer miles: ", std::to_string(telemetryOdometer.milesDriven), "\r\n");
+
     can::CanFrame frame = can::encode(telemetryOdometer);
+    frame.timestamp = HAL_GetTick();
+
+    logger_.logCanFrame(frame);
+    wireless_.updateCanFrame(frame);
     canBus_.send(frame);
   }
 
