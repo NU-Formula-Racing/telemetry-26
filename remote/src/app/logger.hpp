@@ -38,8 +38,8 @@ class Logger {
     rtc_.init();
     constexpr rtc::RtcDate compileDate = rtc::utils::parseCompilerDate(__DATE__);
     constexpr rtc::RtcTime compileTime = rtc::utils::parseCompilerTime(__TIME__);
-    rtc_.setDate(compileDate, 0xAAAB);
-    rtc_.setTime(compileTime, 0xAAAB);
+    rtc_.setDate(compileDate, 0xAAAA);
+    rtc_.setTime(compileTime, 0xAAAA);
 
     // setup sd card
     sdCard_.init();
@@ -63,6 +63,8 @@ class Logger {
     header.startTime = rtc_.getTime();
     sdCard_.write(
         std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&header), sizeof(LogHeader)));
+
+    initialized_ = true;
   }
 
   void simpleLog() {
@@ -80,6 +82,10 @@ class Logger {
     // DEBUG_OUT("Logger", GREEN, "Logging CAN frame of size ", std::to_string(sizeof(LogFrame)),
     //           " with ID ", std::to_string(logFrame.canFrame.id), " at time ",
     //           std::to_string(logFrame.canFrame.timestamp), "\r\n");
+
+    if (!initialized_) {
+      return;
+    }
 
     sdCard_.write(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(&canFrame),
                                            sizeof(can::CanFrame)));
@@ -126,6 +132,10 @@ class Logger {
 
   float getMilesDriven() const { return odometer_.getMilesDriven(); }
 
+  rtc::RtcTime getRtcTime() const { return rtc_.getTime(); }
+
+  rtc::RtcDate getRtcDate() const { return rtc_.getDate(); }
+
  private:
   static uint32_t provideFatTime() {
     const rtc::RtcTime time = activeRtc_->getTime();
@@ -142,6 +152,8 @@ class Logger {
   const std::array<uint8_t, 9> version_ = {'N', 'F', 'R', '2', '6', '0', '0', '0', '\n'};
 
   inline static rtc::Rtc* activeRtc_ = nullptr;
+
+  volatile bool initialized_ = false;
 };
 
 class SdWriteJob : public tasks::IJob {

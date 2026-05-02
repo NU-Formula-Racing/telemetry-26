@@ -124,6 +124,10 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> odometerCanTxTask(
       tasks::TaskConfig{"OdometerCanTxTask", tasks::TaskPriority::LOW, 100, odometerCanTxJob});
 
+  static remote::RtcCanTxJob rtcCanTxJob(remote);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcCanTxTask(
+      tasks::TaskConfig{"RtcCanTxTask", tasks::TaskPriority::LOW, 1000, rtcCanTxJob});
+
   // static StatusCanTxJob statusCanTxJob(remote);
   // static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE>
   // statusCanTxTask(tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1000,
@@ -136,6 +140,7 @@ int main() {
   taskMan.addTask(std::move(loraWriteTask));
   taskMan.addTask(std::move(rtcPrintTask));
   taskMan.addTask(std::move(odometerCanTxTask));
+  taskMan.addTask(std::move(rtcCanTxTask));
   // taskMan.addTask(std::move(statusCanTxTask));
   taskMan.startAllTasks();
 

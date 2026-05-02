@@ -48,9 +48,43 @@ class Remote {
     can::CanFrame frame = can::encode(telemetryOdometer);
     frame.timestamp = HAL_GetTick();
 
-    logger_.logCanFrame(frame);
-    wireless_.updateCanFrame(frame);
     canBus_.send(frame);
+    wireless_.updateCanFrame(frame);
+    logger_.logCanFrame(frame);
+  }
+
+  void sendRtcTime() {
+    remote::canmsgs::TelemetryRtcTime telemetryRtcTime{};
+
+    rtc::RtcTime time = logger_.getRtcTime();
+    telemetryRtcTime.rtcHour = time.hours;
+    telemetryRtcTime.rtcMinute = time.minutes;
+    telemetryRtcTime.rtcSecond = time.seconds;
+    // telemetryRtcTime.rtcSubsecond = time.subseconds;
+
+    can::CanFrame timeFrame = can::encode(telemetryRtcTime);
+    timeFrame.timestamp = HAL_GetTick();
+
+    canBus_.send(timeFrame);
+    wireless_.updateCanFrame(timeFrame);
+    logger_.logCanFrame(timeFrame);
+  }
+
+  void sendRtcDate() {
+    remote::canmsgs::TelemetryRtcDate telemetryRtcDate{};
+
+    rtc::RtcDate date = logger_.getRtcDate();
+    telemetryRtcDate.rtcYear = date.year;
+    telemetryRtcDate.rtcMonth = date.month;
+    telemetryRtcDate.rtcDay = date.day;
+    telemetryRtcDate.rtcWeekday = static_cast<uint8_t>(date.weekday);
+
+    can::CanFrame dateFrame = can::encode(telemetryRtcDate);
+    dateFrame.timestamp = HAL_GetTick();
+
+    canBus_.send(dateFrame);
+    wireless_.updateCanFrame(dateFrame);
+    logger_.logCanFrame(dateFrame);
   }
 
  private:
@@ -92,6 +126,28 @@ class OdometerCanTxJob : public tasks::IJob {
   void init() override {}
 
   void run() override { remote_.sendOdometer(); }
+
+ private:
+  Remote& remote_;
+};
+
+class RtcCanTxJob : public tasks::IJob {
+ public:
+  RtcCanTxJob(Remote& remote) : remote_(remote) {}
+  ~RtcCanTxJob() override = default;
+
+  // delete copy and move
+  RtcCanTxJob(const RtcCanTxJob&) = delete;
+  RtcCanTxJob& operator=(const RtcCanTxJob&) = delete;
+  RtcCanTxJob(RtcCanTxJob&&) = delete;
+  RtcCanTxJob& operator=(RtcCanTxJob&&) = delete;
+
+  void init() override {}
+
+  void run() override {
+    remote_.sendRtcTime();
+    remote_.sendRtcDate();
+  }
 
  private:
   Remote& remote_;

@@ -10,10 +10,10 @@ struct TelemetryRtcTime {
   static constexpr uint32_t ID = 0x510;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  uint32_t rtcHour;
-  uint32_t rtcMinute;
-  uint32_t rtcSecond;
-  uint32_t rtcSubsecond;
+  uint8_t rtcHour;
+  uint8_t rtcMinute;
+  uint8_t rtcSecond;
+  // uint32_t rtcSubsecond;
 };
 #pragma pack(pop)
 
@@ -22,10 +22,10 @@ struct TelemetryRtcDate {
   static constexpr uint32_t ID = 0x511;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  uint32_t rtcYear;
-  uint32_t rtcMonth;
-  uint32_t rtcDay;
-  uint32_t rtcWeekday;
+  uint8_t rtcYear;
+  uint8_t rtcMonth;
+  uint8_t rtcDay;
+  uint8_t rtcWeekday;
 };
 #pragma pack(pop)
 
