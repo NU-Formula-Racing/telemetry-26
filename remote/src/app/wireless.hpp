@@ -58,16 +58,17 @@ class Wireless {
         it->canFrame = frame;
         it->dirty = true;
 
-        DEBUG_OUT("WIRELESS", MAGENTA, "Updated CAN frame with ID ", std::to_string(frame.id),
-                  " to ", frame.dataToString(), "\r\n");
+        // DEBUG_OUT("WIRELESS", MAGENTA, "Updated CAN frame with ID ", std::to_string(frame.id),
+        //           " to ", frame.dataToString(), "\r\n");
       } else {
         // frame with same ID doesnt exist, add new one to buffer
         // drop if buffer is full
         if (!canDataBuffer_.full()) {
           canDataBuffer_.push_back({.canFrame = frame, .dirty = true});
 
-          DEBUG_OUT("WIRELESS", MAGENTA, "Added new CAN frame with ID ", std::to_string(frame.id),
-                    " to ", frame.dataToString(), "\r\n");
+          // DEBUG_OUT("WIRELESS", MAGENTA, "Added new CAN frame with ID ",
+          // std::to_string(frame.id),
+          //           " to ", frame.dataToString(), "\r\n");
         }
       }
 

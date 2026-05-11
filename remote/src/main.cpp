@@ -15,16 +15,12 @@
 #include "utils/utils.hpp"
 
 // TODO //
-// dont break when theres no SD card lol
 // protocol
 // usb class
-// CAN status msg - SD status
-// RTC CAN msg
-// odometer - CAN, log, wireless
+// CAN status msg
 
 // someday:
 // use DIOs + interrupts
-// read from sd
 // change cmake to lint regardless of platform
 // phase out STM main.c and init code in drivers, comment out main.c in CMakeLists
 // std::source_location instead of __FILE__ and __LINE__
@@ -110,7 +106,7 @@ int main() {
 
   static logger::SdWriteJob sdWriteJob(sd);
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
-      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 500, sdWriteJob});
+      tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 10, sdWriteJob});
 
   static wireless::LoraWriteJob loraWriteJob(wireless);
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
@@ -122,7 +118,7 @@ int main() {
 
   static remote::OdometerCanTxJob odometerCanTxJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> odometerCanTxTask(
-      tasks::TaskConfig{"OdometerCanTxTask", tasks::TaskPriority::LOW, 100, odometerCanTxJob});
+      tasks::TaskConfig{"OdometerCanTxTask", tasks::TaskPriority::STANDARD, 100, odometerCanTxJob});
 
   static remote::RtcCanTxJob rtcCanTxJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcCanTxTask(

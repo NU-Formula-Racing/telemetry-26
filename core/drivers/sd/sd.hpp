@@ -146,31 +146,34 @@ class SdCard {
   // data is only written to the card with handleFlush() and driver_.flush()
   // TODO: return a status
   void write(std::span<const uint8_t> data) {
-    while (!data.empty()) {
-      // calculate how much space is left in active buffer and how much of the input data we can
-      // copy in
-      const size_t spaceRemaining = INTERNAL_BUFFER_SIZE - activeBuffer_->size();
-      const size_t toCopy = std::min(spaceRemaining, data.size());
+    if (xSemaphoreTake(writeMutex_, portMAX_DELAY) == pdTRUE) {
+      while (!data.empty()) {
+        // calculate how much space is left in active buffer and how much of the input data we can
+        // copy in
+        const size_t spaceRemaining = INTERNAL_BUFFER_SIZE - activeBuffer_->size();
+        const size_t toCopy = std::min(spaceRemaining, data.size());
 
-      // copy the data into the active buffer
-      auto chunk = data.subspan(0, toCopy);
-      activeBuffer_->insert(activeBuffer_->end(), chunk.begin(), chunk.end());
+        // copy the data into the active buffer
+        auto chunk = data.subspan(0, toCopy);
+        activeBuffer_->insert(activeBuffer_->end(), chunk.begin(), chunk.end());
 
-      data = data.subspan(toCopy);
+        data = data.subspan(toCopy);
 
-      if (activeBuffer_->size() == INTERNAL_BUFFER_SIZE) {
-        if (flushBuffer_ != nullptr) {
-          // both buffers are full .....
-          return;
+        if (activeBuffer_->size() == INTERNAL_BUFFER_SIZE) {
+          if (flushBuffer_ != nullptr) {
+            // both buffers are full .....
+            return;
+          }
+
+          // flip buffers
+          flushBuffer_ = activeBuffer_;
+          activeBuffer_ =
+              (activeBuffer_ == &internalBufferA_) ? &internalBufferB_ : &internalBufferA_;
+
+          xSemaphoreGive(flushSem_);  // signal flush task to write data to card
         }
-
-        // flip buffers
-        flushBuffer_ = activeBuffer_;
-        activeBuffer_ =
-            (activeBuffer_ == &internalBufferA_) ? &internalBufferB_ : &internalBufferA_;
-
-        xSemaphoreGive(flushSem_);  // signal flush task to write data to card
       }
+      xSemaphoreGive(writeMutex_);
     }
   }
 
@@ -247,6 +250,7 @@ class SdCard {
   etl::vector<uint8_t, INTERNAL_BUFFER_SIZE>* activeBuffer_ = &internalBufferA_;
   etl::vector<uint8_t, INTERNAL_BUFFER_SIZE>* flushBuffer_ = nullptr;
 
+  SemaphoreHandle_t writeMutex_ = xSemaphoreCreateMutex();
   SemaphoreHandle_t flushSem_ = xSemaphoreCreateBinary();
 };
 
