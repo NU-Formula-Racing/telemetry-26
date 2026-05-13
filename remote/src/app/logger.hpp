@@ -20,6 +20,19 @@ struct LogHeader {
 };
 #pragma pack(pop)
 
+enum class LoggingStatus : uint8_t {
+  OK = 0,
+  CARD_NOT_DETECTED = 1,
+  MOUNT_FILESYSTEM_ERROR = 2,
+  CARD_FULL = 3,
+  SDIO_COMMS_ERROR = 4,
+};
+
+struct LoggerStatus {
+  uint16_t logFileIndex = 0;
+  LoggingStatus loggingStatus = LoggingStatus::OK;
+};
+
 class Logger {
  public:
   Logger(sd::SdCard& sdCard, rtc::Rtc& rtc) : sdCard_(sdCard), rtc_(rtc) {}
@@ -55,6 +68,7 @@ class Logger {
 
     // open new log file for this session
     sdCard_.openRollingLogFile(rtc_.getDate().toString());
+    status_.logFileIndex = sdCard_.getOpenFileIndex();
 
     // log header
     LogHeader header{};
@@ -136,6 +150,8 @@ class Logger {
 
   rtc::RtcDate getRtcDate() const { return rtc_.getDate(); }
 
+  LoggerStatus getStatus() const { return status_; }
+
  private:
   static uint32_t provideFatTime() {
     const rtc::RtcTime time = activeRtc_->getTime();
@@ -154,6 +170,8 @@ class Logger {
   inline static rtc::Rtc* activeRtc_ = nullptr;
 
   volatile bool initialized_ = false;
+
+  LoggerStatus status_;
 };
 
 class SdWriteJob : public tasks::IJob {

@@ -53,6 +53,22 @@ class Remote {
     logger_.logCanFrame(frame);
   }
 
+  void sendStatus() {
+    remote::canmsgs::TelemetryStatus telemetryStatus{};
+    logger::LoggerStatus s = logger_.getStatus();
+    telemetryStatus.logFile = s.logFileIndex;
+    // telemetryStatus.loggingStatus = s.loggingStatus;
+    telemetryStatus.loggingStatus = 0;
+    telemetryStatus.wirelessStatus = 0;
+
+    can::CanFrame frame = can::encode(telemetryStatus);
+    frame.timestamp = HAL_GetTick();
+
+    canBus_.send(frame);
+    wireless_.updateCanFrame(frame);
+    logger_.logCanFrame(frame);
+  }
+
   void sendRtcTime() {
     remote::canmsgs::TelemetryRtcTime telemetryRtcTime{};
 
@@ -148,6 +164,25 @@ class RtcCanTxJob : public tasks::IJob {
     remote_.sendRtcTime();
     remote_.sendRtcDate();
   }
+
+ private:
+  Remote& remote_;
+};
+
+class StatusCanTxJob : public tasks::IJob {
+ public:
+  StatusCanTxJob(Remote& remote) : remote_(remote) {}
+  ~StatusCanTxJob() override = default;
+
+  // delete copy and move
+  StatusCanTxJob(const StatusCanTxJob&) = delete;
+  StatusCanTxJob& operator=(const StatusCanTxJob&) = delete;
+  StatusCanTxJob(StatusCanTxJob&&) = delete;
+  StatusCanTxJob& operator=(StatusCanTxJob&&) = delete;
+
+  void init() override {}
+
+  void run() override { remote_.sendStatus(); }
 
  private:
   Remote& remote_;

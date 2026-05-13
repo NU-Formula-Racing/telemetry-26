@@ -109,7 +109,7 @@ class SdCard {
     }
 
     // find the next available log file name
-    uint32_t index = 0;
+    uint16_t index = 0;
     std::string path;
 
     // find the next available filename
@@ -122,13 +122,17 @@ class SdCard {
       index++;
     }
 
+    openFileIndex_ = index;
+
     // open the file
     uint8_t mode = SdFileMode::WRITE | SdFileMode::CREATE_ALWAYS;
     return driver_.openFile(path, mode);
   }
 
+  uint16_t getOpenFileIndex() const { return openFileIndex_; }
+
   std::string getLastLogFile(const std::string& dateDir) {
-    uint32_t idx = 0;
+    uint16_t idx = 0;
     std::string lastPath{};
 
     while (idx < 10000) {
@@ -239,7 +243,7 @@ class SdCard {
   }
 
   ISdDriver& driver_;
-  std::string filename_{};
+  uint16_t openFileIndex_ = 9999;
 
   // 4KB internal buffers for write operations
   // aligns with standard SD allocation unit size (512 bytes per sector)
