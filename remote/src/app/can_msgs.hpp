@@ -7,7 +7,7 @@ namespace remote::canmsgs {
 // TX msgs
 #pragma pack(push, 1)
 struct TelemetryRtcTime {
-  static constexpr uint32_t ID = 0x510;
+  static constexpr uint32_t ID = 0x520;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
   uint8_t rtcHour;
@@ -19,7 +19,7 @@ struct TelemetryRtcTime {
 
 #pragma pack(push, 1)
 struct TelemetryRtcDate {
-  static constexpr uint32_t ID = 0x511;
+  static constexpr uint32_t ID = 0x521;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
   uint8_t rtcYear;
@@ -31,7 +31,7 @@ struct TelemetryRtcDate {
 
 #pragma pack(push, 1)
 struct TelemetryOdometer {
-  static constexpr uint32_t ID = 0x512;
+  static constexpr uint32_t ID = 0x522;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
   float milesDriven;
@@ -40,7 +40,7 @@ struct TelemetryOdometer {
 
 #pragma pack(push, 1)
 struct TelemetryStatus {
-  static constexpr uint32_t ID = 0x513;
+  static constexpr uint32_t ID = 0x523;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
   uint16_t logFile;

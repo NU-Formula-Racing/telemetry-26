@@ -126,7 +126,7 @@ int main() {
 
   static remote::StatusCanTxJob statusCanTxJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> statusCanTxTask(
-      tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1001, statusCanTxJob});
+      tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1002, statusCanTxJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
