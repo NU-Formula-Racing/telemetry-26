@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lora.hpp"
+#include "protocol.hpp"
 
 namespace wireless {
 
@@ -23,7 +24,7 @@ class Wireless {
 
  private:
   lora::Lora& lora_;
-  // ProtocolHandler protocol_; // protocol fsm lives here
+  base::protocol::ProtocolHandler protocol_;
 
   lora::LoraConfig config_{
       .boardType = lora::BoardType::BASE_STATION,

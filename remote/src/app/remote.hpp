@@ -42,8 +42,8 @@ class Remote {
     remote::canmsgs::TelemetryOdometer telemetryOdometer{};
     telemetryOdometer.milesDriven = logger_.getMilesDriven();
 
-    DEBUG_OUT("Remote", GREEN,
-              "Sending odometer miles: ", std::to_string(telemetryOdometer.milesDriven), "\r\n");
+    // DEBUG_OUT("Remote", GREEN,
+    //           "Sending odometer miles: ", std::to_string(telemetryOdometer.milesDriven), "\r\n");
 
     can::CanFrame frame = can::encode(telemetryOdometer);
     frame.timestamp = HAL_GetTick();
@@ -59,7 +59,8 @@ class Remote {
     telemetryStatus.logFile = s.logFileIndex;
     // telemetryStatus.loggingStatus = s.loggingStatus;
     telemetryStatus.loggingStatus = 0;
-    telemetryStatus.wirelessStatus = 0;
+    telemetryStatus.wirelessHardwareStatus = static_cast<uint8_t>(wireless_.getHardwareStatus());
+    telemetryStatus.wirelessProtocolState = wireless_.getProtocolState();
 
     can::CanFrame frame = can::encode(telemetryStatus);
     frame.timestamp = HAL_GetTick();

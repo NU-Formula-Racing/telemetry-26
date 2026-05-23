@@ -9,6 +9,7 @@ namespace lora {
 
 enum class BoardType : uint8_t { BASE_STATION, REMOTE };
 enum class LoraMode : uint8_t { SLEEP, STANDBY, TX, RX_CONTINUOUS };
+enum class HardwareStatus : uint8_t { OK, INIT_FAILED, SPI_ERROR, FAULT };
 
 // TODO: fill in other fields to make lib more configurable
 struct LoraConfig {
@@ -59,6 +60,8 @@ class ILoraDriver {
   virtual bool isTransmitting() = 0;
 
   virtual bool packetWaiting() = 0;
+
+  virtual HardwareStatus getHardwareStatus() = 0;
 };
 
 class Lora {
@@ -87,6 +90,8 @@ class Lora {
   }
 
   RxPacket receive() { return driver_.receive(); }
+
+  HardwareStatus getHardwareStatus() { return driver_.getHardwareStatus(); }
 
   // size (255B) is max FIFO depth of RFM95, can be adjusted for other radios
   static constexpr size_t RADIO_FIFO_SIZE = 255;

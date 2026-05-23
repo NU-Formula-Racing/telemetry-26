@@ -92,8 +92,7 @@ int main() {
   // instantiate apps
   static logger::Logger logger(sd, rtc);
   static wireless::Wireless wireless(lora);
-  // static remote::status status;
-  static remote::Remote remote(logger, wireless, /*status, */ can);
+  static remote::Remote remote(logger, wireless, can);
 
   // setup tasks
   static /*remote::*/ BlinkJob blinkJob;
@@ -108,9 +107,9 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 10, sdWriteJob});
 
-  static wireless::LoraWriteJob loraWriteJob(wireless);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
-      tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 200, loraWriteJob});
+  static wireless::WirelessUpdateJob wirelessUpdateJob(wireless);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> wirelessUpdateTask(
+      tasks::TaskConfig{"WirelessUpdateTask", tasks::TaskPriority::LOW, 500, wirelessUpdateJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> rtcPrintTask(
@@ -132,7 +131,7 @@ int main() {
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(processCanTask));
   taskMan.addTask(std::move(sdWriteTask));
-  taskMan.addTask(std::move(loraWriteTask));
+  taskMan.addTask(std::move(wirelessUpdateTask));
   taskMan.addTask(std::move(rtcPrintTask));
   taskMan.addTask(std::move(odometerCanTxTask));
   taskMan.addTask(std::move(rtcCanTxTask));

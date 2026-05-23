@@ -45,7 +45,8 @@ struct TelemetryStatus {
 
   uint16_t logFile;
   uint8_t loggingStatus;
-  uint8_t wirelessStatus;
+  uint8_t wirelessHardwareStatus;
+  uint8_t wirelessProtocolState;
 
   // uint16_t logFile : 16;
   // uint8_t loggingStatus : 3;

@@ -12,7 +12,9 @@
 
 #include "can.hpp"
 #include "drivers/lora/lora.hpp"
-#include "job.hpp"
+#include "packet_types.hpp"
+#include "stm32f4xx_hal.h"
+#include "tasks/job.hpp"
 #include "utils/utils.hpp"
 
 namespace wireless {
@@ -24,9 +26,65 @@ struct WirelessFrame {
 };
 #pragma pack(pop)
 
+// protocol events
+struct EvtTick {
+  uint32_t currentTimeMs;
+};
+struct EvtRxAck {
+  uint32_t sessionId;
+};
+struct EvtRxData {};
+using ProtocolEvent = std::variant<EvtTick, EvtRxAck, EvtRxData>;
+
+// wireless forward declaration
+class Wireless;
+
+// protocol states
+struct StateUnconnected;
+struct StateHandshakePending;
+struct StateConnected;
+using ProtocolState = std::variant<StateUnconnected, StateHandshakePending, StateConnected>;
+
+// protocol state definitions
+struct StateUnconnected {
+  ProtocolState react(const EvtTick& evt, Wireless& ctx);
+  template <typename T>
+  ProtocolState react(const T& /*unused*/, Wireless& /*unused*/);
+};
+
+struct StateHandshakePending {
+  uint32_t lastTxTimeMs = 0;
+  static constexpr uint32_t HANDSHAKE_TIMEOUT_MS = 5000;
+
+  ProtocolState react(const EvtTick& evt, Wireless& ctx);
+  ProtocolState react(const EvtRxAck& evt, Wireless& ctx);
+  template <typename T>
+  ProtocolState react(const T& /*unused*/, Wireless& /*unused*/);
+};
+
+struct StateConnected {
+  ProtocolState react(const EvtTick& evt, Wireless& ctx);
+  template <typename T>
+  ProtocolState react(const T& /*unused*/, Wireless& /*unused*/);
+};
+
+// protocol default template methods need to be defined after the structs but still in the header
+template <typename T>
+ProtocolState StateUnconnected::react(const T& /*unused*/, Wireless& /*unused*/) {
+  return *this;
+}
+template <typename T>
+ProtocolState StateHandshakePending::react(const T& /*unused*/, Wireless& /*unused*/) {
+  return *this;
+}
+template <typename T>
+ProtocolState StateConnected::react(const T& /*unused*/, Wireless& /*unused*/) {
+  return *this;
+}
+
 class Wireless {
  public:
-  Wireless(lora::Lora& lora) : lora_(lora) {}
+  Wireless(lora::Lora& lora) : lora_(lora), protocolState_(StateUnconnected{}) {}
   ~Wireless() = default;
 
   // delete copy and move
@@ -57,18 +115,11 @@ class Wireless {
         // frame with same ID already exists, update it
         it->canFrame = frame;
         it->dirty = true;
-
-        // DEBUG_OUT("WIRELESS", MAGENTA, "Updated CAN frame with ID ", std::to_string(frame.id),
-        //           " to ", frame.dataToString(), "\r\n");
       } else {
         // frame with same ID doesnt exist, add new one to buffer
         // drop if buffer is full
         if (!canDataBuffer_.full()) {
           canDataBuffer_.push_back({.canFrame = frame, .dirty = true});
-
-          // DEBUG_OUT("WIRELESS", MAGENTA, "Added new CAN frame with ID ",
-          // std::to_string(frame.id),
-          //           " to ", frame.dataToString(), "\r\n");
         }
       }
 
@@ -88,9 +139,9 @@ class Wireless {
     }
 
     if (canDataBuffer_.empty()) {
-      std::string emptyMsg = "hello workld\r\n";
-      lora_.send(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(emptyMsg.data()),
-                                          emptyMsg.size()));
+      // std::string emptyMsg = "hello workld\r\n";
+      // lora_.send(std::span<const uint8_t>(reinterpret_cast<const uint8_t*>(emptyMsg.data()),
+      //                                     emptyMsg.size()));
       return true;
     }
 
@@ -126,9 +177,79 @@ class Wireless {
     return false;
   }
 
+  lora::HardwareStatus getHardwareStatus() { return lora_.getHardwareStatus(); }
+
+  uint8_t getProtocolState() const { return static_cast<uint8_t>(protocolState_.index()); }
+
+  bool isConnected() const { return std::holds_alternative<StateConnected>(protocolState_); }
+
+  void processEvent(const ProtocolEvent& evt) {
+    DEBUG_OUT("WIRELESS", BLUE, "Processing event of type ", std::to_string(evt.index()),
+              " in state ", std::to_string(protocolState_.index()), "\r\n");
+    ProtocolState nextState =
+        // idk if react() is ever geting called
+        std::visit(
+            [this](auto& state, const auto& ev) -> ProtocolState { return state.react(ev, *this); },
+            protocolState_, evt);
+    // if a new state was returned, transition
+    protocolState_ = nextState;
+  }
+
+  void update(uint32_t currentTimeMs) {
+    DEBUG_OUT("WIRELESS", BLUE,
+              "top of update, current state: ", std::to_string(protocolState_.index()), "\r\n");
+    EvtTick evt{};
+    evt.currentTimeMs = currentTimeMs;
+    processEvent(evt);
+
+    if (!isConnected()) {
+      DEBUG_OUT("WIRELESS", BLUE, "Not connected, checking for incoming packets\r\n");
+      auto rxPacket = lora_.receive();
+      if (!rxPacket.empty()) {
+        if (rxPacket.size() >= sizeof(protocol::PacketHeader)) {
+          // decode header
+          protocol::PacketHeader header{};
+          std::memcpy(&header, rxPacket.data.data(), sizeof(protocol::PacketHeader));
+
+          // check header.magic matches
+          if (header.magic != protocol::MAGIC) {
+            DEBUG_OUT("WIRELESS", RED, "Received packet with invalid magic, dropping\r\n");
+            return;
+          }
+
+          // translate raw packet into an fsm event
+          if (header.type == protocol::PacketType::HANDSHAKE_ACK) {
+            EvtRxAck ackEvt{};
+            ackEvt.sessionId = header.sessionId;
+            processEvent(ackEvt);
+          }
+        }
+      }
+    }
+  }
+
+  void sendHandshakeReq() {
+    // generate random session ID
+    const auto sessionId = static_cast<uint32_t>(rand());
+
+    DEBUG_OUT("WIRELESS", CYAN, "Sending handshake req with session ID ", std::to_string(sessionId),
+              "\r\n");
+
+    protocol::PacketHeader header{};
+    header.sessionId = sessionId;
+    header.type = protocol::PacketType::HANDSHAKE_REQ;
+    header.length = 0;
+
+    std::array<uint8_t, sizeof(protocol::PacketHeader)> packet;
+    std::memcpy(packet.data(), &header, sizeof(protocol::PacketHeader));
+
+    lora_.send(packet);
+  }
+
  private:
   lora::Lora& lora_;
-  // ProtocolHandler protocol_; // protocol fsm lives here
+
+  ProtocolState protocolState_;
 
   // buffer for storing CAN frame data
   // broken into packets and sent to the LoRa radio periodically
@@ -146,29 +267,28 @@ class Wireless {
   };
 };
 
-class LoraWriteJob : public tasks::IJob {
+class WirelessUpdateJob : public tasks::IJob {
  public:
-  LoraWriteJob(Wireless& wireless) : wireless_(wireless) {}
-  ~LoraWriteJob() override = default;
+  WirelessUpdateJob(Wireless& wireless) : wireless_(wireless) {}
+  ~WirelessUpdateJob() override = default;
 
   // delete copy and move
-  LoraWriteJob(const LoraWriteJob&) = delete;
-  LoraWriteJob& operator=(const LoraWriteJob&) = delete;
-  LoraWriteJob(LoraWriteJob&&) = delete;
-  LoraWriteJob& operator=(LoraWriteJob&&) = delete;
+  WirelessUpdateJob(const WirelessUpdateJob&) = delete;
+  WirelessUpdateJob& operator=(const WirelessUpdateJob&) = delete;
+  WirelessUpdateJob(WirelessUpdateJob&&) = delete;
+  WirelessUpdateJob& operator=(WirelessUpdateJob&&) = delete;
 
   void init() override {}
 
   void run() override {
-    bool res = wireless_.sendCanFrames();
-    if (!res) {
-      ERROR("LoraWriteJob", "LoRa packet dropped or empty :(\r\n");
-    } else {
-      // DEBUG_OUT("LoraWriteJob", CYAN, "LoRa packet sent successfully :)\r\n");
-    }
-
-    // update remote status
-    // sent on CAN in a separate task
+    // DEBUG_OUT("WirelessUpdateJob", BLUE, "Updating wireless...\r\n");
+    //  bool res = wireless_.sendCanFrames();
+    wireless_.update(HAL_GetTick());
+    // if (!res) {
+    //   ERROR("LoraWriteJob", "LoRa packet dropped or empty :(\r\n");
+    // } else {
+    //   // DEBUG_OUT("LoraWriteJob", CYAN, "LoRa packet sent successfully :)\r\n");
+    // }
   }
 
  private:
