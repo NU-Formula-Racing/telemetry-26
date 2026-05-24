@@ -145,7 +145,14 @@ class Wireless {
       return true;
     }
 
-    etl::vector<uint8_t, lora::Lora::RADIO_FIFO_SIZE> packet{};
+    // etl::vector<uint8_t, lora::Lora::RADIO_FIFO_SIZE> packet{};
+
+    protocol::DataPacket packet{};
+    packet.header.magic = protocol::MAGIC;
+    packet.header.sessionId = sessionId_;
+    packet.header.type = protocol::PacketType::DATA;
+    packet.header.length = 0;
+
     const size_t totalFrames = canDataBuffer_.size();
     size_t framesChecked = 0;
 
@@ -153,12 +160,13 @@ class Wireless {
       while (framesChecked < totalFrames) {
         WirelessFrame& wf = canDataBuffer_.at(txIndex_);
         if (wf.dirty) {
-          if (packet.size() + sizeof(can::CanFrame) > packet.max_size()) {
+          if (packet.payload.size() + sizeof(can::CanFrame) > packet.payload.max_size()) {
             break;  // packet cant fit any more frames
           }
 
           auto frameBytes = std::bit_cast<std::array<uint8_t, sizeof(can::CanFrame)>>(wf.canFrame);
-          packet.insert(packet.end(), frameBytes.begin(), frameBytes.end());
+          packet.payload.insert(packet.payload.end(), frameBytes.begin(), frameBytes.end());
+          packet.header.length += sizeof(can::CanFrame);
 
           wf.dirty = false;
         }
@@ -168,10 +176,13 @@ class Wireless {
       xSemaphoreGive(mutex_);
     }
 
-    if (!packet.empty()) {
+    if (!packet.payload.empty()) {
       // DEBUG_OUT("WIRELESS", GREEN, "Sending packet of size ", std::to_string(packet.size()),
       //           "\r\n");
-      return lora_.send(std::span(packet.data(), packet.size()));
+
+      std::array<uint8_t, sizeof(protocol::DataPacket)> packetBytes{};
+      std::memcpy(packetBytes.data(), &packet, sizeof(protocol::DataPacket));
+      lora_.send(packetBytes);
     }
 
     return false;
@@ -186,11 +197,9 @@ class Wireless {
   void processEvent(const ProtocolEvent& evt) {
     DEBUG_OUT("WIRELESS", BLUE, "Processing event of type ", std::to_string(evt.index()),
               " in state ", std::to_string(protocolState_.index()), "\r\n");
-    ProtocolState nextState =
-        // idk if react() is ever geting called
-        std::visit(
-            [this](auto& state, const auto& ev) -> ProtocolState { return state.react(ev, *this); },
-            protocolState_, evt);
+    ProtocolState nextState = std::visit(
+        [this](auto& state, const auto& ev) -> ProtocolState { return state.react(ev, *this); },
+        protocolState_, evt);
     // if a new state was returned, transition
     protocolState_ = nextState;
   }
@@ -230,13 +239,13 @@ class Wireless {
 
   void sendHandshakeReq() {
     // generate random session ID
-    const auto sessionId = static_cast<uint32_t>(rand());
+    sessionId_ = static_cast<uint32_t>(rand());
 
-    DEBUG_OUT("WIRELESS", CYAN, "Sending handshake req with session ID ", std::to_string(sessionId),
-              "\r\n");
+    DEBUG_OUT("WIRELESS", CYAN, "Sending handshake req with session ID ",
+              std::to_string(sessionId_), "\r\n");
 
     protocol::PacketHeader header{};
-    header.sessionId = sessionId;
+    header.sessionId = sessionId_;
     header.type = protocol::PacketType::HANDSHAKE_REQ;
     header.length = 0;
 
@@ -250,6 +259,7 @@ class Wireless {
   lora::Lora& lora_;
 
   ProtocolState protocolState_;
+  uint32_t sessionId_ = 0;
 
   // buffer for storing CAN frame data
   // broken into packets and sent to the LoRa radio periodically

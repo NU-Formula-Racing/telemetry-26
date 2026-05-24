@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "lora.hpp"
+
 namespace protocol {
 
 enum class PacketType : uint8_t { HANDSHAKE_REQ, HANDSHAKE_ACK, DATA };
@@ -21,5 +23,12 @@ struct PacketHeader {
 
 // add payload structs later as needed
 // add templated encode() and decode() for packets eventually
+
+#pragma pack(push, 1)
+struct DataPacket {
+  PacketHeader header;
+  etl::vector<uint8_t, lora::Lora::RADIO_FIFO_SIZE - sizeof(PacketHeader)> payload;
+};
+#pragma pack(pop)
 
 };  // namespace protocol

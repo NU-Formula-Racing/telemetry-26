@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lora.hpp"
-#include "protocol.hpp"
 
 namespace wireless {
 
@@ -22,9 +21,10 @@ class Wireless {
 
   lora::RxPacket receive() { return lora_.receive(); }
 
+  bool send(std::span<const uint8_t> data) { return lora_.send(data); }
+
  private:
   lora::Lora& lora_;
-  base::protocol::ProtocolHandler protocol_;
 
   lora::LoraConfig config_{
       .boardType = lora::BoardType::BASE_STATION,

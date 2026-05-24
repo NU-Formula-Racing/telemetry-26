@@ -52,13 +52,13 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::SMALL> blinkTask(
       tasks::TaskConfig{"BlinkTask", tasks::TaskPriority::STANDARD, 1000, blinkJob});
 
-  static base::LoraReadJob loraReadJob(baseStation);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraReadTask(
-      tasks::TaskConfig{"LoraReadTask", tasks::TaskPriority::STANDARD, 100, loraReadJob});
+  static base::WirelessUpdateJob wirelessUpdateJob(baseStation);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> wirelessUpdateTask(tasks::TaskConfig{
+      "WirelessUpdateTask", tasks::TaskPriority::STANDARD, 499, wirelessUpdateJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
-  taskMan.addTask(std::move(loraReadTask));
+  taskMan.addTask(std::move(wirelessUpdateTask));
 
   taskMan.startAllTasks();
   vTaskStartScheduler();

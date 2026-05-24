@@ -17,8 +17,6 @@ ProtocolState StateHandshakePending::react(const EvtTick& evt, Wireless& /*ctx*/
     DEBUG_OUT("WIRELESS", MAGENTA, "Handshake timeout, returning to unconnected state\r\n");
     return StateUnconnected{};
   }
-  // lastTxTimeMs = evt.currentTimeMs;
-  // return StateHandshakePending{evt.currentTimeMs};
   return *this;
 }
 
