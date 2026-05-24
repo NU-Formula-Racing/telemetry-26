@@ -57,6 +57,15 @@ struct TelemetryStatus {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+struct TelemetryActiveAero {
+  static constexpr uint32_t ID = 0x524;
+  static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
+
+  uint8_t servoAngle;
+};
+#pragma pack(pop)
+
 // RX msgs
 #pragma pack(push, 1)
 struct RearInverterMotorStatus {
