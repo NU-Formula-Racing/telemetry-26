@@ -105,8 +105,6 @@ class Logger {
                                            sizeof(can::CanFrame)));
   }
 
-  // ODOMETER NOT GETTING PROPERLY RETRIEVED RN, ITS ALWAYS 0 //
-  // i think bc when you piower the board and the sd card is out it will be 0
   float recoverMilesDriven(const std::string& lastLog) {
     float milesRecovered = 0.0F;
     if (!lastLog.empty()) {

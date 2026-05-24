@@ -38,9 +38,8 @@ class Rfm95 : public ILoraDriver {
     uint8_t version = spi_.readReg(REG_VERSION);
     if (version != 0x12) {
       // rfm95 module not detected/spi error
+      // update status
       DEBUG_OUT("RFM95", RED, "RFM95 module not detected or SPI error\r\n");
-      hardwareStatus_ = HardwareStatus::INIT_FAILED;
-      return;
     }
 
     // configure rfm95
@@ -82,7 +81,6 @@ class Rfm95 : public ILoraDriver {
     spi_.writeReg(REG_FRF_MSB, 0xE4);
     spi_.writeReg(REG_FRF_MID, 0xC0);
     spi_.writeReg(REG_FRF_LSB, 0x00);
-    hardwareStatus_ = HardwareStatus::OK;
   }
 
   void setMode(LoraMode mode) override {
@@ -164,8 +162,6 @@ class Rfm95 : public ILoraDriver {
     return (irqFlags & 0x40) != 0;
   }
 
-  HardwareStatus getHardwareStatus() override { return hardwareStatus_; }
-
   void printVersion() {
     uint8_t version = spi_.readReg(REG_VERSION);
     DEBUG_OUT("RFM95", GREEN, "Version: ", std::to_string(version), "\r\n");
@@ -184,7 +180,6 @@ class Rfm95 : public ILoraDriver {
   void setOpmode(const uint8_t opmode) { spi_.writeReg(REG_OP_MODE, opmode); }
 
   spi::Spi spi_;
-  HardwareStatus hardwareStatus_ = HardwareStatus::OK;
 
   // buffer for storing received packets
   std::array<uint8_t, Lora::RADIO_FIFO_SIZE> rxBuffer_{};

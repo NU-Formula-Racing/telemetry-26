@@ -1,7 +1,7 @@
 add_library(core_lora INTERFACE
             lora.hpp
             rfm95_utils.hpp
-            packet_types.hpp
+            # protocol.hpp
             )
 
 target_link_libraries(core_lora INTERFACE
