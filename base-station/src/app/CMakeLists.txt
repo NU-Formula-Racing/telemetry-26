@@ -16,4 +16,8 @@ target_link_libraries(base-station_app PRIVATE
                        core_drivers
                       )
 
+if (CMAKE_CROSSCOMPILING)
+    target_link_libraries(base-station_app PRIVATE freertos_kernel freertos_config)
+endif()
+
 set_target_properties(base-station_app PROPERTIES LINKER_LANGUAGE CXX)

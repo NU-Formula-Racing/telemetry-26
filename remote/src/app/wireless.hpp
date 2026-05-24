@@ -205,16 +205,19 @@ class Wireless {
   }
 
   void update(uint32_t currentTimeMs) {
-    DEBUG_OUT("WIRELESS", BLUE,
-              "top of update, current state: ", std::to_string(protocolState_.index()), "\r\n");
     EvtTick evt{};
     evt.currentTimeMs = currentTimeMs;
     processEvent(evt);
 
     if (!isConnected()) {
-      DEBUG_OUT("WIRELESS", BLUE, "Not connected, checking for incoming packets\r\n");
+      // if (!lora_.isTransmitting()) {
+      //   lora_.setMode(lora::LoraMode::RX_CONTINUOUS);
+      // }
+
       auto rxPacket = lora_.receive();
       if (!rxPacket.empty()) {
+        DEBUG_OUT("REMOTE", CYAN, "Received packet of size ", std::to_string(rxPacket.size()), ": ",
+                  rxPacket.toString(), "\r\n");
         if (rxPacket.size() >= sizeof(protocol::PacketHeader)) {
           // decode header
           protocol::PacketHeader header{};

@@ -5,6 +5,7 @@
 
 #include "lora.hpp"
 #include "packet_types.hpp"
+#include "projdefs.h"
 #include "stm32f4xx_hal.h"
 #include "tasks/job.hpp"
 #include "utils/utils.hpp"
@@ -44,7 +45,7 @@ struct StateUnconnected {
 
 struct StateConnected {
   uint32_t lastRxTimeMs;
-  static constexpr uint32_t DATA_TIMEOUT_MS = 10000;
+  static constexpr uint32_t DATA_TIMEOUT_MS = 5000;
 
   ProtocolState react(const EvtTick& evt, BaseStation& ctx);
   ProtocolState react(const EvtRxHandshakeReq& evt, BaseStation& ctx);
@@ -127,6 +128,10 @@ class BaseStation {
     evt.currentTimeMs = currentTimeMs;
     processEvent(evt);
 
+    if (!wireless_.isTransmitting()) {
+      wireless_.setMode(lora::LoraMode::RX_CONTINUOUS);
+    }
+
     auto rxPacket = wireless_.receive();
     if (!rxPacket.empty()) {
       DEBUG_OUT("BaseStation", CYAN, "Received packet of size ", std::to_string(rxPacket.size()),
@@ -147,6 +152,7 @@ class BaseStation {
           DEBUG_OUT("BaseStation", CYAN, "Received handshake req with session ID ",
                     std::to_string(header.sessionId), "\r\n");
           EvtRxHandshakeReq handshakeReqEvt{};
+          handshakeReqEvt.rxTimeMs = currentTimeMs;
           handshakeReqEvt.handshakeReqPacket = rxPacket;
           processEvent(handshakeReqEvt);
         } else if (header.type == protocol::PacketType::DATA) {
@@ -159,8 +165,6 @@ class BaseStation {
           processEvent(dataEvt);
         }
       }
-      DEBUG_OUT("BaseStation", CYAN, "Received packet of size ", std::to_string(rxPacket.size()),
-                ": ", rxPacket.toString(), "\r\n");
     } else {
       DEBUG_OUT("BaseStation", CYAN, "No packet received\r\n");
     }

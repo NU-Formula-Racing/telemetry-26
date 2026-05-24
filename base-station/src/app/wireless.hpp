@@ -23,6 +23,10 @@ class Wireless {
 
   bool send(std::span<const uint8_t> data) { return lora_.send(data); }
 
+  bool isTransmitting() { return lora_.isTransmitting(); }
+
+  void setMode(lora::LoraMode mode) { lora_.setMode(mode); }
+
  private:
   lora::Lora& lora_;
 

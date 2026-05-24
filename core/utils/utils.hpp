@@ -4,6 +4,11 @@
 
 #include "usbd_cdc_if.h"
 
+#ifdef __arm__
+#include <FreeRTOS.h>
+#include <task.h>
+#endif
+
 // ansi color codes
 #define RESET "\x1B[0m"
 #define BOLD "\x1B[1m"
@@ -40,6 +45,17 @@ class Debug {
   ~Debug() = default;
   Verbosity verbosity = Verbosity::SILENT;
 
+  void safe_cdc_transmit(const std::string& result) {
+    uint8_t retries = 0;
+    while (CDC_Transmit_FS((uint8_t*)result.data(), static_cast<uint16_t>(result.size())) != 0) {
+      retries++;
+      if (retries > 10) break;
+#ifdef __arm__
+      vTaskDelay(pdMS_TO_TICKS(1));
+#endif
+    }
+  }
+
  public:
   Debug(const Debug&) = delete;
   Debug& operator=(const Debug&) = delete;
@@ -58,7 +74,7 @@ class Debug {
     std::string msg;
     (append(msg, std::string_view{std::forward<Args>(args)}), ...);
     const std::string result = "ERROR: " + msg;
-    CDC_Transmit_FS((uint8_t*)result.data(), static_cast<uint16_t>(result.size()));
+    safe_cdc_transmit(result);
   }
 
   template <typename... Args>
@@ -67,7 +83,7 @@ class Debug {
       std::string msg;
       (append(msg, std::string_view{std::forward<Args>(args)}), ...);
       const std::string result = "DEBUG: " + msg;
-      CDC_Transmit_FS((uint8_t*)result.data(), static_cast<uint16_t>(result.size()));
+      safe_cdc_transmit(result);
     }
   }
 
@@ -75,6 +91,6 @@ class Debug {
   void print(Args&&... args) {
     std::string msg;
     (append(msg, std::string_view{std::forward<Args>(args)}), ...);
-    CDC_Transmit_FS((uint8_t*)msg.data(), static_cast<uint16_t>(msg.size()));
+    safe_cdc_transmit(msg);
   }
 };
