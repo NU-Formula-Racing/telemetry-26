@@ -1,5 +1,6 @@
 #pragma once
 
+#include "active_aero.hpp"
 #include "can_msgs.hpp"
 #include "drivers/can/can.hpp"
 #include "logger.hpp"
@@ -10,8 +11,9 @@ namespace remote {
 
 class Remote {
  public:
-  Remote(logger::Logger& logger, wireless::Wireless& wireless, can::CanBus& canBus)
-      : logger_(logger), wireless_(wireless), canBus_(canBus) {}
+  Remote(logger::Logger& logger, wireless::Wireless& wireless, can::CanBus& canBus,
+         aero::ActiveAeroController& activeAero)
+      : logger_(logger), wireless_(wireless), canBus_(canBus), activeAero_(activeAero) {}
   ~Remote() = default;
 
   // delete copy and move
@@ -34,9 +36,15 @@ class Remote {
       if (frame.id == remote::canmsgs::RearInverterMotorStatus::ID) {
         auto rearInverterMotorStatus = can::decode<remote::canmsgs::RearInverterMotorStatus>(frame);
         logger_.updateOdometer(rearInverterMotorStatus.rpm, frame.timestamp);
+      } else if (frame.id == remote::canmsgs::VcuSetCurrentRearInverter::ID) {
+        auto vcuSetCurrentRearInverter =
+            can::decode<remote::canmsgs::VcuSetCurrentRearInverter>(frame);
+        activeAero_.setCurrentRequest(vcuSetCurrentRearInverter.setCurrentRearInverter);
       }
     }
   }
+
+  void updateDrsServoAngle() { activeAero_.updateServoAngle(); }
 
   void sendOdometer() {
     remote::canmsgs::TelemetryOdometer telemetryOdometer{};
@@ -59,7 +67,8 @@ class Remote {
     telemetryStatus.logFile = s.logFileIndex;
     // telemetryStatus.loggingStatus = s.loggingStatus;
     telemetryStatus.loggingStatus = 0;
-    telemetryStatus.wirelessStatus = 0;
+    telemetryStatus.wirelessHardwareStatus = 0;
+    telemetryStatus.wirelessProtocolState = 0;
 
     can::CanFrame frame = can::encode(telemetryStatus);
     frame.timestamp = HAL_GetTick();
@@ -103,10 +112,24 @@ class Remote {
     logger_.logCanFrame(dateFrame);
   }
 
+  void sendActiveAeroStatus() {
+    remote::canmsgs::TelemetryActiveAero telemetryActiveAero{};
+
+    telemetryActiveAero.servoAngle = static_cast<uint8_t>(activeAero_.getServoAngle());
+
+    can::CanFrame frame = can::encode(telemetryActiveAero);
+    frame.timestamp = HAL_GetTick();
+
+    canBus_.send(frame);
+    wireless_.updateCanFrame(frame);
+    logger_.logCanFrame(frame);
+  }
+
  private:
   logger::Logger& logger_;
   wireless::Wireless& wireless_;
   can::CanBus& canBus_;
+  aero::ActiveAeroController& activeAero_;
 };
 
 class ProcessCanJob : public tasks::IJob {
@@ -183,6 +206,25 @@ class StatusCanTxJob : public tasks::IJob {
   void init() override {}
 
   void run() override { remote_.sendStatus(); }
+
+ private:
+  Remote& remote_;
+};
+
+class ActiveAeroCtrlJob : public tasks::IJob {
+ public:
+  ActiveAeroCtrlJob(Remote& remote) : remote_(remote) {}
+  ~ActiveAeroCtrlJob() override = default;
+
+  // delete copy and move
+  ActiveAeroCtrlJob(const ActiveAeroCtrlJob&) = delete;
+  ActiveAeroCtrlJob& operator=(const ActiveAeroCtrlJob&) = delete;
+  ActiveAeroCtrlJob(ActiveAeroCtrlJob&&) = delete;
+  ActiveAeroCtrlJob& operator=(ActiveAeroCtrlJob&&) = delete;
+
+  void init() override {}
+
+  void run() override { remote_.updateDrsServoAngle(); }
 
  private:
   Remote& remote_;

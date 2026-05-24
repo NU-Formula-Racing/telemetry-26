@@ -11,6 +11,7 @@
 #include "drivers/lora/rfm95.hpp"
 #include "drivers/rtc/rtc_stm32.hpp"
 #include "drivers/sd/sd_stm32.hpp"
+#include "drivers/servo/servo_stm32.hpp"
 #include "tasks/task.hpp"
 #include "utils/utils.hpp"
 
@@ -89,11 +90,14 @@ int main() {
   static lora::rfm95::Rfm95 rfm95;
   static lora::Lora lora(rfm95);
 
+  static servo::Stm32ServoDriver servoDriver;
+  static aero::ActiveAeroController activeAero(servoDriver);
+
   // instantiate apps
   static logger::Logger logger(sd, rtc);
   static wireless::Wireless wireless(lora);
   // static remote::status status;
-  static remote::Remote remote(logger, wireless, /*status, */ can);
+  static remote::Remote remote(logger, wireless, can, activeAero);
 
   // setup tasks
   static /*remote::*/ BlinkJob blinkJob;
@@ -128,6 +132,10 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> statusCanTxTask(
       tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1002, statusCanTxJob});
 
+  static remote::ActiveAeroCtrlJob activeAeroCtrlJob(remote);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> activeAeroCtrlTask(
+      tasks::TaskConfig{"ActiveAeroCtrlTask", tasks::TaskPriority::LOW, 1003, activeAeroCtrlJob});
+
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(processCanTask));
@@ -137,6 +145,7 @@ int main() {
   taskMan.addTask(std::move(odometerCanTxTask));
   taskMan.addTask(std::move(rtcCanTxTask));
   taskMan.addTask(std::move(statusCanTxTask));
+  taskMan.addTask(std::move(activeAeroCtrlTask));
   taskMan.startAllTasks();
 
   vTaskStartScheduler();

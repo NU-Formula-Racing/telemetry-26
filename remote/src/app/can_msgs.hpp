@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "can.hpp"
 
 namespace remote::canmsgs {
@@ -45,12 +47,22 @@ struct TelemetryStatus {
 
   uint16_t logFile;
   uint8_t loggingStatus;
-  uint8_t wirelessStatus;
+  uint8_t wirelessHardwareStatus;
+  uint8_t wirelessProtocolState;
 
   // uint16_t logFile : 16;
   // uint8_t loggingStatus : 3;
   // uint8_t wirelessStatus : 2;
   // std::array<uint8_t, 7> reserved;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct TelemetryActiveAero {
+  static constexpr uint32_t ID = 0x524;
+  static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
+
+  uint8_t servoAngle;
 };
 #pragma pack(pop)
 
@@ -64,6 +76,15 @@ struct RearInverterMotorStatus {
   int16_t motorCurrent;
   int16_t dcVoltage;
   int16_t dcCurrent;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct VcuSetCurrentRearInverter {
+  static constexpr uint32_t ID = 0x200;
+  static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
+
+  int32_t setCurrentRearInverter;
 };
 #pragma pack(pop)
 
