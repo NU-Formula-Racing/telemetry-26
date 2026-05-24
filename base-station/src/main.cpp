@@ -6,6 +6,7 @@
 
 #include "app/base_station.hpp"
 #include "drivers/lora/rfm95.hpp"
+#include "drivers/usb/usb_stm32.hpp"
 #include "lora.hpp"
 #include "tasks/task.hpp"
 #include "utils/utils.hpp"
@@ -41,11 +42,13 @@ int main() {
   // instantiate drivers & interfaces STATICALLY
   static lora::rfm95::Rfm95 rfm95;
   static lora::Lora lora(rfm95);
-  // static usb::Usb usb;
+
+  static usb::UsbStm32 usbDriver;
+  static usb::Usb usb(usbDriver);
 
   // instantiate apps
   static wireless::Wireless wireless(lora);
-  static base::BaseStation baseStation(wireless /*, usb*/);
+  static base::BaseStation baseStation(wireless, usb);
 
   // setup tasks
   static BlinkJob blinkJob;
@@ -56,9 +59,14 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraReadTask(
       tasks::TaskConfig{"LoraReadTask", tasks::TaskPriority::STANDARD, 100, loraReadJob});
 
+  static base::UsbWriteJob usbWriteJob(baseStation);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> usbWriteTask(
+      tasks::TaskConfig{"UsbWriteTask", tasks::TaskPriority::STANDARD, 100, usbWriteJob});
+
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(loraReadTask));
+  taskMan.addTask(std::move(usbWriteTask));
 
   taskMan.startAllTasks();
   vTaskStartScheduler();
