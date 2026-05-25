@@ -24,7 +24,7 @@ enum class TaskStackSize : uint32_t {
   SMALL = 128,
   MEDIUM = 256,
   LARGE = 512,
-  XLARGE = 1024,
+  XLARGE = 1600,
 };
 
 struct TaskConfig {

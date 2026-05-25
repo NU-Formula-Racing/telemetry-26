@@ -105,11 +105,11 @@ int main() {
       tasks::TaskConfig{"ProcessCanTask", tasks::TaskPriority::HIGH, 10, processCanJob});
 
   static logger::SdWriteJob sdWriteJob(sd);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> sdWriteTask(
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> sdWriteTask(
       tasks::TaskConfig{"SdWriteTask", tasks::TaskPriority::LOW, 10, sdWriteJob});
 
   static wireless::LoraWriteJob loraWriteJob(wireless);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::XLARGE> loraWriteTask(
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> loraWriteTask(
       tasks::TaskConfig{"LoraWriteTask", tasks::TaskPriority::LOW, 200, loraWriteJob});
 
   static RtcPrintJob rtcPrintJob(rtc);
@@ -117,7 +117,7 @@ int main() {
       tasks::TaskConfig{"RtcPrintTask", tasks::TaskPriority::STANDARD, 2000, rtcPrintJob});
 
   static remote::OdometerCanTxJob odometerCanTxJob(remote);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> odometerCanTxTask(
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> odometerCanTxTask(
       tasks::TaskConfig{"OdometerCanTxTask", tasks::TaskPriority::STANDARD, 100, odometerCanTxJob});
 
   static remote::RtcCanTxJob rtcCanTxJob(remote);
@@ -125,7 +125,7 @@ int main() {
       tasks::TaskConfig{"RtcCanTxTask", tasks::TaskPriority::LOW, 1000, rtcCanTxJob});
 
   static remote::StatusCanTxJob statusCanTxJob(remote);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> statusCanTxTask(
+  static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> statusCanTxTask(
       tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1002, statusCanTxJob});
 
   // start all tasks
