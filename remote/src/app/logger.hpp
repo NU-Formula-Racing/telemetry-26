@@ -112,12 +112,12 @@ class Logger {
           sdCard_.openFile(lastLog, sd::SdFileMode::READ | sd::SdFileMode::OPEN_EXISTING);
       if (res == sd::SdResult::OK) {
         uint32_t fileSize = sdCard_.getOpenFileSize();
-        uint32_t chunkSize = std::min<uint32_t>(fileSize, 2048U);
+        uint32_t chunkSize = std::min<uint32_t>(fileSize, 4096U);
 
         sdCard_.seek(fileSize - chunkSize);  // seek to last chunk of file
 
         // read last chunk of file
-        etl::vector<uint8_t, 2048> lastFrames{};
+        etl::vector<uint8_t, 4096> lastFrames{};
         lastFrames.resize(chunkSize);
         sdCard_.read(std::span(lastFrames));
 

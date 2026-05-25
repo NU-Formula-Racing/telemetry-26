@@ -29,7 +29,7 @@ class BaseStation {
     }
 
     std::array<uint8_t, sizeof(lora::RxPacket)> packetBytes;
-    std::memcpy(packetBytes.data(), &packet, sizeof(lora::RxPacket));
+    std::memcpy(packetBytes.data(), &packet, sizeof(packetBytes));
     usb_.write(std::span(packetBytes.data(), sizeof(lora::RxPacket)));
     // DEBUG_OUT("BaseStation", CYAN, "Received packet of size ", std::to_string(packet.size()), ":
     // ",
