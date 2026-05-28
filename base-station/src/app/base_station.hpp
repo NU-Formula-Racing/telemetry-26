@@ -28,9 +28,16 @@ class BaseStation {
       return;
     }
 
-    std::array<uint8_t, sizeof(lora::RxPacket)> packetBytes;
-    std::memcpy(packetBytes.data(), &packet, sizeof(packetBytes));
-    usb_.write(std::span(packetBytes.data(), sizeof(lora::RxPacket)));
+    // write metadata
+    usb::UsbStreamHeader meta{};
+    meta.rssi = packet.rssi;
+    meta.snr = packet.snr;
+    meta.length = static_cast<uint8_t>(packet.data.size());
+    auto metaBytes = std::bit_cast<std::array<uint8_t, sizeof(usb::UsbStreamHeader)>>(meta);
+    usb_.write(metaBytes);
+
+    // write data
+    usb_.write(packet.data);
     // DEBUG_OUT("BaseStation", CYAN, "Received packet of size ", std::to_string(packet.size()), ":
     // ",
     //           packet.toString(), "\r\n");

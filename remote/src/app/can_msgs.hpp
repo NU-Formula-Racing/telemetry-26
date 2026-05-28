@@ -1,6 +1,7 @@
 #pragma once
 
-#include "can.hpp"
+#include "can_signals.hpp"
+#include "can_types.hpp"
 
 namespace remote::canmsgs {
 
@@ -10,10 +11,10 @@ struct TelemetryRtcTime {
   static constexpr uint32_t ID = 0x520;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  uint8_t rtcHour;
-  uint8_t rtcMinute;
-  uint8_t rtcSecond;
-  // uint32_t rtcSubsecond;
+  can::CanSignal<TelemetryRtcTimeRtcHourTraits> rtcHour;
+  can::CanSignal<TelemetryRtcTimeRtcMinuteTraits> rtcMinute;
+  can::CanSignal<TelemetryRtcTimeRtcSecondTraits> rtcSecond;
+  // can::CanSignal<TelemetryRtcTimeRtcSubsecondTraits> rtcSubsecond;
 };
 #pragma pack(pop)
 
@@ -22,10 +23,10 @@ struct TelemetryRtcDate {
   static constexpr uint32_t ID = 0x521;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  uint8_t rtcYear;
-  uint8_t rtcMonth;
-  uint8_t rtcDay;
-  uint8_t rtcWeekday;
+  can::CanSignal<TelemetryRtcDateRtcYearTraits> rtcYear;
+  can::CanSignal<TelemetryRtcDateRtcMonthTraits> rtcMonth;
+  can::CanSignal<TelemetryRtcDateRtcDayTraits> rtcDay;
+  can::CanSignal<TelemetryRtcDateRtcWeekdayTraits> rtcWeekday;
 };
 #pragma pack(pop)
 
@@ -34,7 +35,7 @@ struct TelemetryOdometer {
   static constexpr uint32_t ID = 0x522;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  float milesDriven;
+  can::CanSignal<TelemetryOdometerMilesDrivenTraits> milesDriven;
 };
 #pragma pack(pop)
 
@@ -43,13 +44,15 @@ struct TelemetryStatus {
   static constexpr uint32_t ID = 0x523;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  uint16_t logFile;
-  uint8_t loggingStatus;
-  uint8_t wirelessStatus;
+  can::CanSignal<TelemetryStatusLogFileTraits> logFile;
+  can::CanSignal<TelemetryStatusLoggingStatusTraits> loggingStatus;
+  can::CanSignal<TelemetryStatusWirelessHardwareStatusTraits> wirelessStatus;
+  can::CanSignal<TelemetryStatusWirelessProtocolStateTraits> wirelessProtocolState;
 
-  // uint16_t logFile : 16;
-  // uint8_t loggingStatus : 3;
-  // uint8_t wirelessStatus : 2;
+  // can::CanSignal<uint16_t, uint16_t, 1.0F, 0.0F> logFile : 16;
+  // can::CanSignal<uint8_t, uint8_t, 1.0F, 0.0F> loggingStatus : 3;
+  // can::CanSignal<uint8_t, uint8_t, 1.0F, 0.0F> wirelessStatus : 2;
+  // can::CanSignal<uint8_t, uint8_t, 1.0F, 0.0F> wirelessProtocolState : 2;
   // std::array<uint8_t, 7> reserved;
 };
 #pragma pack(pop)
@@ -60,10 +63,10 @@ struct RearInverterMotorStatus {
   static constexpr uint32_t ID = 0x281;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  int16_t rpm;
-  int16_t motorCurrent;
-  int16_t dcVoltage;
-  int16_t dcCurrent;
+  can::CanSignal<RearInverterMotorStatusRpmTraits> rpm;
+  can::CanSignal<RearInverterMotorStatusMotorCurrentTraits> motorCurrent;
+  can::CanSignal<RearInverterMotorStatusDcVoltageTraits> dcVoltage;
+  can::CanSignal<RearInverterMotorStatusDcCurrentTraits> dcCurrent;
 };
 #pragma pack(pop)
 

@@ -19,6 +19,14 @@ inline size_t xStreamBufferReceive(StreamBufferHandle_t, void*, size_t, uint32_t
 
 namespace usb {
 
+#pragma pack(push, 1)
+struct UsbStreamHeader {
+  int16_t rssi;
+  float snr;
+  uint8_t length;
+};
+#pragma pack(pop)
+
 class IUsbDriver {
  public:
   virtual ~IUsbDriver() = default;

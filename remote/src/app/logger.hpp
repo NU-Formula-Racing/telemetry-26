@@ -130,7 +130,7 @@ class Logger {
           if (f.id == remote::canmsgs::TelemetryOdometer::ID) {
             //  found the odometer frame, extract miles driven
             auto odom = can::decode<remote::canmsgs::TelemetryOdometer>(f);
-            milesRecovered = odom.milesDriven;
+            milesRecovered = odom.milesDriven.toPhysical();
             break;
           }
         }

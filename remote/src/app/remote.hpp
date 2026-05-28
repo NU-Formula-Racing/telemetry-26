@@ -33,17 +33,18 @@ class Remote {
       wireless_.updateCanFrame(frame);
       if (frame.id == remote::canmsgs::RearInverterMotorStatus::ID) {
         auto rearInverterMotorStatus = can::decode<remote::canmsgs::RearInverterMotorStatus>(frame);
-        logger_.updateOdometer(rearInverterMotorStatus.rpm, frame.timestamp);
+        logger_.updateOdometer(rearInverterMotorStatus.rpm.toPhysical(), frame.timestamp);
       }
     }
   }
 
   void sendOdometer() {
     remote::canmsgs::TelemetryOdometer telemetryOdometer{};
-    telemetryOdometer.milesDriven = logger_.getMilesDriven();
+    telemetryOdometer.milesDriven.fromPhysical(logger_.getMilesDriven());
 
-    DEBUG_OUT("Remote", GREEN,
-              "Sending odometer miles: ", std::to_string(telemetryOdometer.milesDriven), "\r\n");
+    DEBUG_OUT("Remote", GREEN, "Sending physical odometer miles: ",
+              std::to_string(telemetryOdometer.milesDriven.toPhysical()),
+              " and raw: ", std::to_string(telemetryOdometer.milesDriven.rawValue), "\r\n");
 
     can::CanFrame frame = can::encode(telemetryOdometer);
     frame.timestamp = HAL_GetTick();
@@ -56,10 +57,10 @@ class Remote {
   void sendStatus() {
     remote::canmsgs::TelemetryStatus telemetryStatus{};
     logger::LoggerStatus s = logger_.getStatus();
-    telemetryStatus.logFile = s.logFileIndex;
+    telemetryStatus.logFile.fromPhysical(s.logFileIndex);
     // telemetryStatus.loggingStatus = s.loggingStatus;
-    telemetryStatus.loggingStatus = 0;
-    telemetryStatus.wirelessStatus = 0;
+    telemetryStatus.loggingStatus.fromPhysical(0);
+    telemetryStatus.wirelessStatus.fromPhysical(0);
 
     can::CanFrame frame = can::encode(telemetryStatus);
     frame.timestamp = HAL_GetTick();
@@ -73,10 +74,10 @@ class Remote {
     remote::canmsgs::TelemetryRtcTime telemetryRtcTime{};
 
     rtc::RtcTime time = logger_.getRtcTime();
-    telemetryRtcTime.rtcHour = time.hours;
-    telemetryRtcTime.rtcMinute = time.minutes;
-    telemetryRtcTime.rtcSecond = time.seconds;
-    // telemetryRtcTime.rtcSubsecond = time.subseconds;
+    telemetryRtcTime.rtcHour.fromPhysical(time.hours);
+    telemetryRtcTime.rtcMinute.fromPhysical(time.minutes);
+    telemetryRtcTime.rtcSecond.fromPhysical(time.seconds);
+    // telemetryRtcTime.rtcSubsecond.fromPhysical(time.subseconds);
 
     can::CanFrame timeFrame = can::encode(telemetryRtcTime);
     timeFrame.timestamp = HAL_GetTick();
@@ -90,10 +91,10 @@ class Remote {
     remote::canmsgs::TelemetryRtcDate telemetryRtcDate{};
 
     rtc::RtcDate date = logger_.getRtcDate();
-    telemetryRtcDate.rtcYear = date.year;
-    telemetryRtcDate.rtcMonth = date.month;
-    telemetryRtcDate.rtcDay = date.day;
-    telemetryRtcDate.rtcWeekday = static_cast<uint8_t>(date.weekday);
+    telemetryRtcDate.rtcYear.fromPhysical(date.year);
+    telemetryRtcDate.rtcMonth.fromPhysical(date.month);
+    telemetryRtcDate.rtcDay.fromPhysical(date.day);
+    telemetryRtcDate.rtcWeekday.fromPhysical(static_cast<uint8_t>(date.weekday));
 
     can::CanFrame dateFrame = can::encode(telemetryRtcDate);
     dateFrame.timestamp = HAL_GetTick();
