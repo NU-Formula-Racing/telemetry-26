@@ -60,7 +60,8 @@ class Remote {
     telemetryStatus.logFile.fromPhysical(s.logFileIndex);
     // telemetryStatus.loggingStatus = s.loggingStatus;
     telemetryStatus.loggingStatus.fromPhysical(0);
-    telemetryStatus.wirelessStatus.fromPhysical(0);
+    telemetryStatus.wirelessHardwareStatus.fromPhysical(0);
+    telemetryStatus.wirelessProtocolState.fromPhysical(0);
 
     can::CanFrame frame = can::encode(telemetryStatus);
     frame.timestamp = HAL_GetTick();

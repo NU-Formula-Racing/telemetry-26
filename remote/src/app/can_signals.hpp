@@ -25,6 +25,13 @@ struct TelemetryRtcTimeRtcSecondTraits {
   static constexpr float OFFSET = 0.0F;
 };
 
+struct TelemetryRtcTimeRtcSubsecondTraits {
+  using RawType = uint32_t;
+  using PhysicalType = uint32_t;
+  static constexpr float FACTOR = 1.0F;
+  static constexpr float OFFSET = 0.0F;
+};
+
 struct TelemetryRtcDateRtcYearTraits {
   using RawType = uint8_t;
   using PhysicalType = uint8_t;

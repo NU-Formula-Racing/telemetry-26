@@ -46,7 +46,7 @@ struct TelemetryStatus {
 
   can::CanSignal<TelemetryStatusLogFileTraits> logFile;
   can::CanSignal<TelemetryStatusLoggingStatusTraits> loggingStatus;
-  can::CanSignal<TelemetryStatusWirelessHardwareStatusTraits> wirelessStatus;
+  can::CanSignal<TelemetryStatusWirelessHardwareStatusTraits> wirelessHardwareStatus;
   can::CanSignal<TelemetryStatusWirelessProtocolStateTraits> wirelessProtocolState;
 
   // can::CanSignal<uint16_t, uint16_t, 1.0F, 0.0F> logFile : 16;
