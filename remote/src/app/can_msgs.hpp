@@ -14,7 +14,7 @@ struct TelemetryRtcTime {
   can::CanSignal<TelemetryRtcTimeRtcHourTraits> rtcHour;
   can::CanSignal<TelemetryRtcTimeRtcMinuteTraits> rtcMinute;
   can::CanSignal<TelemetryRtcTimeRtcSecondTraits> rtcSecond;
-  // can::CanSignal<TelemetryRtcTimeRtcSubsecondTraits> rtcSubsecond;
+  can::CanSignal<TelemetryRtcTimeRtcSubsecondTraits> rtcSubsecond;
 };
 #pragma pack(pop)
 
