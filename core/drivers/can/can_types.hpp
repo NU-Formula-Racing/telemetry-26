@@ -37,6 +37,32 @@ struct CanFrame {
 };
 #pragma pack(pop)
 
+template <typename Traits>
+struct CanSignal {
+  using RawT = typename Traits::RawType;
+  using PhysicalT = typename Traits::PhysicalType;
+
+  RawT rawValue;
+
+  CanSignal() = default;
+  template <typename T>
+  CanSignal(T physical) {
+    fromPhysical(physical);
+  }
+
+  // apply factor and offset for encoding
+  template <typename T>
+  CanSignal& fromPhysical(T physical) {
+    rawValue = static_cast<RawT>((static_cast<float>(physical) - Traits::OFFSET) / Traits::FACTOR);
+    return *this;
+  }
+
+  // undo factor and offset for decoding
+  PhysicalT toPhysical() const {
+    return static_cast<PhysicalT>((static_cast<float>(rawValue) * Traits::FACTOR) + Traits::OFFSET);
+  }
+};
+
 template <typename T>
 CanFrame encode(const T& msg) {
   static_assert(sizeof(T) <= sizeof(CanFrame::data),
@@ -46,6 +72,8 @@ CanFrame encode(const T& msg) {
   frame.id = T::ID;
   frame.idType = T::ID_TYPE;
   frame.dlc = static_cast<uint8_t>(sizeof(T));
+  // subtract offset
+  // divide by factor
   std::memcpy(frame.data.data(), &msg, sizeof(T));
 
   return frame;
@@ -54,6 +82,8 @@ CanFrame encode(const T& msg) {
 template <typename T>
 T decode(const CanFrame& frame) {
   T msg{};
+  // multiply by factor
+  // add offset
   const size_t numBytesToCopy = std::min(static_cast<size_t>(frame.dlc), sizeof(T));
   std::memcpy(&msg, frame.data.data(), numBytesToCopy);
 

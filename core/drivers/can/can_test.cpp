@@ -52,6 +52,55 @@ struct MixedTypesMsg {
 };
 #pragma pack(pop)
 
+// --- New Message Types for CanSignal Tests ---
+
+struct OdometerTraits {
+  using RawType = uint32_t;
+  using PhysicalType = float;
+  static constexpr float FACTOR = 0.1F;
+  static constexpr float OFFSET = 0.0F;
+};
+
+struct TemperatureTraits {
+  using RawType = uint8_t;
+  using PhysicalType = float;
+  static constexpr float FACTOR = 1.0F;
+  static constexpr float OFFSET = -50.0F;
+};
+
+struct StatusTraits {
+  using RawType = uint8_t;
+  using PhysicalType = uint8_t;
+  static constexpr float FACTOR = 1.0F;
+  static constexpr float OFFSET = 0.0F;
+};
+
+// Factor and Offset testing traits
+struct ScalingTraits1 {
+  using RawType = uint16_t;
+  using PhysicalType = float;
+  static constexpr float FACTOR = 0.5F;
+  static constexpr float OFFSET = 10.0F;
+};
+
+struct ScalingTraits2 {
+  using RawType = int8_t;
+  using PhysicalType = float;
+  static constexpr float FACTOR = 2.0F;
+  static constexpr float OFFSET = -100.0F;
+};
+
+#pragma pack(push, 1)
+struct SignalTestMsg {
+  static constexpr uint32_t ID = 0x444;
+  static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
+
+  can::CanSignal<OdometerTraits> odometer;
+  can::CanSignal<TemperatureTraits> temperature;
+  can::CanSignal<StatusTraits> status;
+};
+#pragma pack(pop)
+
 }  // namespace
 
 TEST(CanEncodeDecodeTest, EncodeSetsHeaderAndDataCorrectly) {
@@ -137,4 +186,84 @@ TEST(CanEncodeDecodeTest, DecodePreventsBufferOverrunOnMismatchedDlc) {
 TEST(CanEncodeDecodeTest, StructIsProperlyPacked) {
   // 1 byte (uint8_t) + 4 bytes (uint32_t) + 2 bytes (uint16_t) = 7 bytes
   EXPECT_EQ(sizeof(MixedTypesMsg), 7);
+}
+
+// --- New Tests for CanSignal ---
+
+TEST(CanSignalTest, FromPhysicalAppliesFactor) {
+  can::CanSignal<OdometerTraits> odometer{};
+  odometer.fromPhysical(12.5F);
+  // (12.5 - 0.0) / 0.1 = 125
+  EXPECT_EQ(odometer.rawValue, 125);
+}
+
+TEST(CanSignalTest, FromPhysicalAppliesOffset) {
+  can::CanSignal<TemperatureTraits> temperature{};
+  temperature.fromPhysical(20.0F);
+  // (20.0 - (-50.0)) / 1.0 = 70
+  EXPECT_EQ(temperature.rawValue, 70);
+}
+
+TEST(CanSignalTest, ToPhysicalReversesFactor) {
+  can::CanSignal<OdometerTraits> odometer{};
+  odometer.rawValue = 125;
+  // (125 * 0.1) + 0.0 = 12.5
+  EXPECT_FLOAT_EQ(odometer.toPhysical(), 12.5F);
+}
+
+TEST(CanSignalTest, ToPhysicalReversesOffset) {
+  can::CanSignal<TemperatureTraits> temperature{};
+  temperature.rawValue = 70;
+  // (70 * 1.0) + (-50.0) = 20.0
+  EXPECT_FLOAT_EQ(temperature.toPhysical(), 20.0F);
+}
+
+TEST(CanSignalTest, UnscaledIntegerTypesWork) {
+  can::CanSignal<StatusTraits> status{};
+  status.fromPhysical(static_cast<uint8_t>(42));
+  EXPECT_EQ(status.rawValue, 42);
+  EXPECT_EQ(status.toPhysical(), 42);
+}
+
+TEST(CanSignalTest, ConstructorCallsFromPhysical) {
+  can::CanSignal<OdometerTraits> odometer(15.5F);
+  EXPECT_EQ(odometer.rawValue, 155);
+}
+
+TEST(CanSignalTest, ScalingFactorAndOffsetCombineCorrectly) {
+  can::CanSignal<ScalingTraits1> val{};
+  // (30.0 - 10.0) / 0.5 = 40
+  val.fromPhysical(30.0F);
+  EXPECT_EQ(val.rawValue, 40);
+  
+  val.rawValue = 60;
+  // (60 * 0.5) + 10.0 = 40.0
+  EXPECT_FLOAT_EQ(val.toPhysical(), 40.0F);
+}
+
+TEST(CanSignalTest, ScalingNegativeNumbersWork) {
+  can::CanSignal<ScalingTraits2> val{};
+  // (-50.0 - (-100.0)) / 2.0 = 25
+  val.fromPhysical(-50.0F);
+  EXPECT_EQ(val.rawValue, 25);
+  
+  val.rawValue = 10;
+  // (10 * 2.0) + (-100.0) = -80.0
+  EXPECT_FLOAT_EQ(val.toPhysical(), -80.0F);
+}
+
+TEST(CanSignalTest, EncodeDecodeWithCanSignal) {
+  SignalTestMsg original{};
+  original.odometer.fromPhysical(100.5F);                    // Raw: 1005
+  original.temperature.fromPhysical(25.0F);                  // Raw: 75
+  original.status.fromPhysical(static_cast<uint8_t>(0xAA));  // Raw: 0xAA
+
+  can::CanFrame frame = can::encode(original);
+  EXPECT_EQ(frame.dlc, sizeof(SignalTestMsg));
+
+  auto decoded = can::decode<SignalTestMsg>(frame);
+
+  EXPECT_FLOAT_EQ(decoded.odometer.toPhysical(), 100.5F);
+  EXPECT_FLOAT_EQ(decoded.temperature.toPhysical(), 25.0F);
+  EXPECT_EQ(decoded.status.toPhysical(), 0xAA);
 }

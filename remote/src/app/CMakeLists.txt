@@ -1,6 +1,7 @@
 add_library(remote_app INTERFACE)
 
 target_sources(remote_app INTERFACE 
+            can_signals.hpp
             can_msgs.hpp
             odometer.hpp
             logger.hpp
