@@ -122,11 +122,11 @@ int main() {
 
   static remote::RtcCanTxJob rtcCanTxJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> rtcCanTxTask(
-      tasks::TaskConfig{"RtcCanTxTask", tasks::TaskPriority::LOW, 1000, rtcCanTxJob});
+      tasks::TaskConfig{"RtcCanTxTask", tasks::TaskPriority::LOW, 1002, rtcCanTxJob});
 
   static remote::StatusCanTxJob statusCanTxJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> statusCanTxTask(
-      tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1002, statusCanTxJob});
+      tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1003, statusCanTxJob});
 
   // start all tasks
   taskMan.addTask(std::move(blinkTask));

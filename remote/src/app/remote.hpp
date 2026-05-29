@@ -76,7 +76,8 @@ class Remote {
     telemetryRtcTime.rtcHour = time.hours;
     telemetryRtcTime.rtcMinute = time.minutes;
     telemetryRtcTime.rtcSecond = time.seconds;
-    // telemetryRtcTime.rtcSubsecond = time.subseconds;
+    telemetryRtcTime.rtcSubsecond = time.subseconds;
+    // telemetryRtcTime.rtcSubsecond = HAL_GetTick();
 
     can::CanFrame timeFrame = can::encode(telemetryRtcTime);
     timeFrame.timestamp = HAL_GetTick();

@@ -13,7 +13,7 @@ struct TelemetryRtcTime {
   uint8_t rtcHour;
   uint8_t rtcMinute;
   uint8_t rtcSecond;
-  // uint32_t rtcSubsecond;
+  uint32_t rtcSubsecond;
 };
 #pragma pack(pop)
 
