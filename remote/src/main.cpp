@@ -136,6 +136,10 @@ int main() {
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> activeAeroCtrlTask(
       tasks::TaskConfig{"ActiveAeroCtrlTask", tasks::TaskPriority::LOW, 1003, activeAeroCtrlJob});
 
+  static remote::ActiveAeroCtrlJob activeAeroCtrlJob(remote);
+  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> activeAeroCtrlTask(
+      tasks::TaskConfig{"ActiveAeroCtrlTask", tasks::TaskPriority::LOW, 1003, activeAeroCtrlJob});
+
   // start all tasks
   taskMan.addTask(std::move(blinkTask));
   taskMan.addTask(std::move(processCanTask));

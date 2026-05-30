@@ -79,4 +79,13 @@ struct RearInverterMotorStatus {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+struct VcuSetCurrentRearInverter {
+  static constexpr uint32_t ID = 0x200;
+  static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
+
+  int32_t setCurrentRearInverter;
+};
+#pragma pack(pop)
+
 }  // namespace remote::canmsgs
