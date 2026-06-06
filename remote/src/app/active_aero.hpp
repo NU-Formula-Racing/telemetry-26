@@ -6,10 +6,11 @@
 
 namespace aero {
 
-static constexpr int32_t OPEN_DRS_THRESHOLD = 360000 / 4;
+static constexpr uint8_t CLOSED_ANGLE = 180;
+static constexpr uint8_t OPEN_ANGLE = 0;
 
 // replace with correct angles
-enum class ServoAngle : uint8_t { CLOSED = 50, OPEN = 120 };
+enum class ServoAngle : uint8_t { CLOSED = CLOSED_ANGLE, OPEN = OPEN_ANGLE };
 
 class ActiveAeroController {
  public:
@@ -22,10 +23,24 @@ class ActiveAeroController {
   ActiveAeroController(ActiveAeroController&&) = delete;
   ActiveAeroController& operator=(ActiveAeroController&&) = delete;
 
-  void setCurrentRequest(int32_t currentRequest) { currentRequest_ = currentRequest; }
+  void init() {
+    servo_.init();
+    servo_.setAngle(static_cast<uint16_t>(ServoAngle::CLOSED));
+  }
+
+  void setServoAngle(uint8_t commandedAirfoilState) {
+    if (commandedAirfoilState == 0) {
+      servoAngle_ = ServoAngle::CLOSED;
+    } else if (commandedAirfoilState == 1) {
+      servoAngle_ = ServoAngle::OPEN;
+    } else {
+      // invalid state, default to closed
+      servoAngle_ = ServoAngle::CLOSED;
+    }
+  }
 
   void updateServoAngle() {
-    if (currentRequest_ > OPEN_DRS_THRESHOLD) {
+    if (servoAngle_ == ServoAngle::OPEN) {
       servo_.setAngle(static_cast<uint16_t>(ServoAngle::OPEN));
     } else {
       servo_.setAngle(static_cast<uint16_t>(ServoAngle::CLOSED));
@@ -35,8 +50,7 @@ class ActiveAeroController {
   ServoAngle getServoAngle() const { return servoAngle_; }
 
  private:
-  // prob should lock currentRequest_: processCanJob writes, activeAeroCtrlJob reads
-  int32_t currentRequest_ = 0;
+  // prob should lock servoAngle_: processCanJob writes, activeAeroCtrlJob reads
   ServoAngle servoAngle_ = ServoAngle::CLOSED;
   servo::IServoDriver& servo_;
 };

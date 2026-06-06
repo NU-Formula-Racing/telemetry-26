@@ -12,6 +12,7 @@ if (CMAKE_CROSSCOMPILING)
                      )
     target_link_libraries(core_servo INTERFACE
                          platform_bsp
+                         core_utils
                          )
 endif()
 

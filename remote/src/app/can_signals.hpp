@@ -95,6 +95,13 @@ struct TelemetryStatusWirelessProtocolStateTraits {
   static constexpr float OFFSET = 0.0F;
 };
 
+struct TelemetryActiveAeroServoAngleTraits {
+  using RawType = uint8_t;
+  using PhysicalType = uint8_t;
+  static constexpr float FACTOR = 1.0F;
+  static constexpr float OFFSET = 0.0F;
+};
+
 struct RearInverterMotorStatusRpmTraits {
   using RawType = int16_t;
   using PhysicalType = int16_t;
@@ -120,6 +127,13 @@ struct RearInverterMotorStatusDcCurrentTraits {
   using RawType = int16_t;
   using PhysicalType = int16_t;
   static constexpr float FACTOR = 0.1F;
+  static constexpr float OFFSET = 0.0F;
+};
+
+struct VcuActiveAeroCommandActiveAeroStateTraits {
+  using RawType = uint8_t;
+  using PhysicalType = uint8_t;
+  static constexpr float FACTOR = 1.0F;
   static constexpr float OFFSET = 0.0F;
 };
 

@@ -28,6 +28,8 @@
 
 extern "C" void BspInit(void);
 
+extern TIM_HandleTypeDef htim1;
+
 class BlinkJob : public tasks::IJob {
  public:
   BlinkJob() = default;
@@ -90,7 +92,8 @@ int main() {
   static lora::rfm95::Rfm95 rfm95;
   static lora::Lora lora(rfm95);
 
-  static servo::Stm32ServoDriver servoDriver;
+  static servo::Stm32ServoDriver servoDriver(&htim1, TIM_CHANNEL_1);
+  // static servo::Stm32ServoDriver;
   static aero::ActiveAeroController activeAero(servoDriver);
 
   // instantiate apps
@@ -131,10 +134,6 @@ int main() {
   static remote::StatusCanTxJob statusCanTxJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::MEDIUM> statusCanTxTask(
       tasks::TaskConfig{"StatusCanTxTask", tasks::TaskPriority::LOW, 1003, statusCanTxJob});
-
-  static remote::ActiveAeroCtrlJob activeAeroCtrlJob(remote);
-  static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> activeAeroCtrlTask(
-      tasks::TaskConfig{"ActiveAeroCtrlTask", tasks::TaskPriority::LOW, 1003, activeAeroCtrlJob});
 
   static remote::ActiveAeroCtrlJob activeAeroCtrlJob(remote);
   static tasks::FreeRtosTask<tasks::TaskStackSize::LARGE> activeAeroCtrlTask(

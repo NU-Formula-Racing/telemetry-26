@@ -26,6 +26,7 @@ class Remote {
     logger_.init();
     wireless_.init();
     canBus_.init();
+    activeAero_.init();
   }
 
   void processCan() {
@@ -35,24 +36,27 @@ class Remote {
       wireless_.updateCanFrame(frame);
       if (frame.id == remote::canmsgs::RearInverterMotorStatus::ID) {
         auto rearInverterMotorStatus = can::decode<remote::canmsgs::RearInverterMotorStatus>(frame);
-        logger_.updateOdometer(rearInverterMotorStatus.rpm.toPhysical(), frame.timestamp);
-      } else if (frame.id == remote::canmsgs::VcuSetCurrentRearInverter::ID) {
-        auto vcuSetCurrentRearInverter =
-            can::decode<remote::canmsgs::VcuSetCurrentRearInverter>(frame);
-        activeAero_.setCurrentRequest(vcuSetCurrentRearInverter.setCurrentRearInverter);
+
+        int16_t rpm = rearInverterMotorStatus.rpm.toPhysical();
+        logger_.updateOdometer(rpm, frame.timestamp);
+      } else if (frame.id == remote::canmsgs::VcuActiveAeroCommand::ID) {
+        auto vcuActiveAeroCommand = can::decode<remote::canmsgs::VcuActiveAeroCommand>(frame);
+
+        uint8_t commandedState = vcuActiveAeroCommand.activeAeroState.toPhysical();
+        activeAero_.setServoAngle(commandedState);
       }
     }
   }
 
-  void updateDrsServoAngle() { activeAero_.updateServoAngle(); }
+  void updateServoAngle() { activeAero_.updateServoAngle(); }
 
   void sendOdometer() {
     remote::canmsgs::TelemetryOdometer telemetryOdometer{};
     telemetryOdometer.milesDriven.fromPhysical(logger_.getMilesDriven());
 
-    DEBUG_OUT("Remote", GREEN, "Sending physical odometer miles: ",
-              std::to_string(telemetryOdometer.milesDriven.toPhysical()),
-              " and raw: ", std::to_string(telemetryOdometer.milesDriven.rawValue), "\r\n");
+    // DEBUG_OUT("Remote", GREEN, "Sending physical odometer miles: ",
+    //           std::to_string(telemetryOdometer.milesDriven.toPhysical()),
+    //           " and raw: ", std::to_string(telemetryOdometer.milesDriven.rawValue), "\r\n");
 
     can::CanFrame frame = can::encode(telemetryOdometer);
     frame.timestamp = HAL_GetTick();
@@ -116,7 +120,8 @@ class Remote {
   void sendActiveAeroStatus() {
     remote::canmsgs::TelemetryActiveAero telemetryActiveAero{};
 
-    telemetryActiveAero.servoAngle = static_cast<uint8_t>(activeAero_.getServoAngle());
+    auto servoAngle = static_cast<uint8_t>(activeAero_.getServoAngle());
+    telemetryActiveAero.servoAngle.fromPhysical(servoAngle);
 
     can::CanFrame frame = can::encode(telemetryActiveAero);
     frame.timestamp = HAL_GetTick();
@@ -225,7 +230,7 @@ class ActiveAeroCtrlJob : public tasks::IJob {
 
   void init() override {}
 
-  void run() override { remote_.updateDrsServoAngle(); }
+  void run() override { remote_.updateServoAngle(); }
 
  private:
   Remote& remote_;

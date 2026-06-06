@@ -62,7 +62,7 @@ struct TelemetryActiveAero {
   static constexpr uint32_t ID = 0x524;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  uint8_t servoAngle;
+  can::CanSignal<TelemetryActiveAeroServoAngleTraits> servoAngle;
 };
 #pragma pack(pop)
 
@@ -80,11 +80,11 @@ struct RearInverterMotorStatus {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-struct VcuSetCurrentRearInverter {
-  static constexpr uint32_t ID = 0x200;
+struct VcuActiveAeroCommand {
+  static constexpr uint32_t ID = 0x208;
   static constexpr can::CanIdType ID_TYPE = can::CanIdType::STANDARD;
 
-  int32_t setCurrentRearInverter;
+  can::CanSignal<VcuActiveAeroCommandActiveAeroStateTraits> activeAeroState;
 };
 #pragma pack(pop)
 
