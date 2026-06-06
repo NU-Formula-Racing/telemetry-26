@@ -54,9 +54,9 @@ class Remote {
     remote::canmsgs::TelemetryOdometer telemetryOdometer{};
     telemetryOdometer.milesDriven.fromPhysical(logger_.getMilesDriven());
 
-    // DEBUG_OUT("Remote", GREEN, "Sending physical odometer miles: ",
-    //           std::to_string(telemetryOdometer.milesDriven.toPhysical()),
-    //           " and raw: ", std::to_string(telemetryOdometer.milesDriven.rawValue), "\r\n");
+    DEBUG_OUT("Remote", GREEN, "Sending physical odometer miles: ",
+              std::to_string(telemetryOdometer.milesDriven.toPhysical()),
+              " and raw: ", std::to_string(telemetryOdometer.milesDriven.rawValue), "\r\n");
 
     can::CanFrame frame = can::encode(telemetryOdometer);
     frame.timestamp = HAL_GetTick();

@@ -24,9 +24,21 @@ class Stm32ServoDriver : public IServoDriver {
   Stm32ServoDriver(Stm32ServoDriver&&) = delete;
   Stm32ServoDriver& operator=(Stm32ServoDriver&&) = delete;
 
-  void init() { HAL_TIM_PWM_Start(htim_, channel_); }
+  void init() {
+    __HAL_TIM_MOE_ENABLE(htim_);
+    HAL_TIM_PWM_Start(htim_, channel_);
+    if (htim_ == nullptr || htim_->Instance == nullptr) {
+      DEBUG_OUT("StmServo", RED, "htim or htim->Instance is null\r\n");
+      return;
+    }
+  }
 
   void setAngle(uint16_t angle) override {
+    if (htim_ == nullptr || htim_->Instance == nullptr) {
+      DEBUG_OUT("StmServo", RED, "htim or htim->Instance is null\r\n");
+      return;
+    }
+
     if (angle < MIN_ANGLE) {
       angle = MIN_ANGLE;
     } else if (angle > MAX_ANGLE) {
@@ -35,10 +47,10 @@ class Stm32ServoDriver : public IServoDriver {
 
     uint16_t pulseWidthUs = angleToPulseWidth(angle);
 
-    DEBUG_OUT("StmServo", GREEN, "Setting servo angle to ", std::to_string(angle), " degrees\r\n");
+    DEBUG_OUT("StmServo", BLUE, "Setting servo angle to ", std::to_string(angle),
+              " degrees on channel ", std::to_string(channel_), "\r\n");
 
     __HAL_TIM_SET_COMPARE(htim_, channel_, pulseWidthUs);
-    // htim_->Instance->CCR1 = pulseWidthUs;
   }
 
  private:
