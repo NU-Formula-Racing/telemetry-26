@@ -133,7 +133,7 @@ class Wireless {
   // buffer for storing CAN frame data
   // broken into packets and sent to the LoRa radio periodically
   // size is 120 to account for ~100 CAN IDs in DBC (+ some extra room just in case)
-  static constexpr size_t CAN_BUFFER_SIZE = 120;
+  static constexpr size_t CAN_BUFFER_SIZE = 150;
   etl::vector<WirelessFrame, CAN_BUFFER_SIZE> canDataBuffer_;
 
   // index for tracking where we are in the data buffer when sending
