@@ -28,13 +28,11 @@
 /* USER CODE END firstSection */
 
 /* Includes ------------------------------------------------------------------*/
-#include "../../Middlewares/Third_Party/FatFs/src/ff_gen_drv.h"
 #include "bsp_driver_sd.h"
-
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-extern const Diskio_drvTypeDef SD_Driver;
+extern const Diskio_drvTypeDef  SD_Driver;
 
 /* USER CODE BEGIN lastSection */
 /* can be used to modify / undefine previous code or add new definitions */
