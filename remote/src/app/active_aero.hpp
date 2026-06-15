@@ -7,7 +7,7 @@
 namespace aero {
 
 static constexpr uint8_t CLOSED_ANGLE = 180;
-static constexpr uint8_t OPEN_ANGLE = 0;
+static constexpr uint8_t OPEN_ANGLE = 20;
 
 // replace with correct angles
 enum class ServoAngle : uint8_t { CLOSED = CLOSED_ANGLE, OPEN = OPEN_ANGLE };

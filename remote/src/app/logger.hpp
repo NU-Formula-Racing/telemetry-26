@@ -131,6 +131,7 @@ class Logger {
             //  found the odometer frame, extract miles driven
             auto odom = can::decode<remote::canmsgs::TelemetryOdometer>(f);
             milesRecovered = odom.milesDriven.toPhysical();
+            // milesRecovered = 69.87F;
             break;
           }
         }
